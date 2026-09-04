@@ -159,12 +159,11 @@
         </div>
     </div>
 
-    <!-- Header Principal (Sem contorno no título e com fonte aumentada para destaque) -->
+    <!-- Header Principal -->
     <header class="bg-slate-900 text-white shadow-md border-b border-slate-700 sticky top-0 z-20 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <!-- Título destacado sem contorno/borda de botão -->
                 <div class="flex items-center space-x-2.5">
                     <i class="fa-solid fa-boxes-packing text-amber-500 text-2xl"></i>
                     <div class="flex flex-col justify-center">
@@ -173,7 +172,6 @@
                     </div>
                 </div>
 
-                <!-- Botões com largura reduzida (px-2.5 h-9 text-xs) e visual simétrico -->
                 <div class="flex items-center space-x-1.5 sm:space-x-2">
                     <div class="flex items-center bg-slate-800 border border-slate-700 rounded-md px-2 h-9 text-xs gap-1.5">
                         <i class="fa-solid fa-user text-amber-400 text-xs"></i>
@@ -183,43 +181,36 @@
                         </div>
                     </div>
 
-                    <!-- Botão Impressão de Códigos de Barras -->
                     <button onclick="openBarcodeModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Imprimir Etiquetas com Código de Barras">
                         <i class="fa-solid fa-barcode text-amber-400"></i>
                         <span class="hidden md:inline">Etiquetas Barcode</span>
                     </button>
 
-                    <!-- Administrador -->
                     <button id="btnManageUsers" onclick="openUsersModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Gerenciar Usuários">
                         <i class="fa-solid fa-users-gear text-amber-400"></i>
                         <span class="hidden md:inline">Usuários</span>
                     </button>
 
-                    <!-- Operador e Administrador -->
                     <button id="btnManageLocations" onclick="openLocationModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Gerenciar Localizações">
                         <i class="fa-solid fa-location-dot text-amber-400"></i>
                         <span class="hidden md:inline">Localizações</span>
                     </button>
                     
-                    <!-- Exclusivo Administrador -->
                     <button id="btnCompare" onclick="openCompareModal()" class="h-9 px-2.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-code-compare"></i>
                         <span class="hidden md:inline">Comparar CSV</span>
                     </button>
 
-                    <!-- Operador e Administrador -->
                     <button id="btnAddItem" onclick="openItemModal()" class="h-9 px-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-plus"></i>
                         <span>Novo Item</span>
                     </button>
 
-                    <!-- Operador e Administrador -->
                     <button id="btnBulkLocationHeader" onclick="openBulkLocationModal()" class="h-9 px-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap" title="Alterar Localização de Todos os Itens Filtrados">
                         <i class="fa-solid fa-layer-group"></i>
                         <span class="hidden md:inline">Alterar em Massa</span>
                     </button>
 
-                    <!-- Exclusivo Administrador -->
                     <button id="btnImport" onclick="openImportModal()" class="h-9 px-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-file-import"></i>
                         <span>Importar</span>
