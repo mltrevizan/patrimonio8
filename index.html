@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- JsBarcode Lib -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <!-- CryptoJS (SHA-256 para Sugestão 4) -->
+    <!-- CryptoJS (SHA-256) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
     <script>
@@ -80,11 +80,10 @@
         }
     </style>
 
-    <!-- FIREBASE SDK MODULAR + AUTHENTICATION (Sugestão 1 e 3) -->
+    <!-- FIREBASE SDK MODULAR -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
@@ -98,24 +97,18 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const auth = getAuth(app);
 
         window.fbDB = db;
-        window.fbAuth = auth;
         window.fbRef = ref;
         window.fbSet = set;
         window.fbUpdate = update;
         window.fbRemove = remove;
         window.fbOnValue = onValue;
-        window.fbSignIn = signInWithEmailAndPassword;
-        window.fbSignOut = signOut;
-        window.fbOnAuthStateChanged = onAuthStateChanged;
-        window.fbUpdatePassword = updatePassword;
     </script>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-slate-700 selection:text-white" onclick="handleGlobalClick(event)">
 
-    <!-- Tela de Login com Autenticação do Firebase -->
+    <!-- Tela de Login Interno do App -->
     <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div class="p-6 bg-slate-900 text-white text-center border-b border-slate-800 space-y-2 flex flex-col items-center">
@@ -123,12 +116,12 @@
                     <i class="fa-solid fa-boxes-packing text-amber-500 text-3xl"></i>
                 </div>
                 <h2 class="font-bold text-xl tracking-wide">Gestão de Patrimônio</h2>
-                <p class="text-xs text-slate-400">Delegacia de Polícia - Autenticação Segura</p>
+                <p class="text-xs text-slate-400">Delegacia de Polícia - Acesso ao Sistema</p>
             </div>
             <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail / Usuário</label>
-                    <input type="email" id="loginUsername" required placeholder="admin@policiacivil.pr.gov.br" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Usuário / Login</label>
+                    <input type="text" id="loginUsername" required placeholder="Ex: admin" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Senha</label>
@@ -155,11 +148,11 @@
             <form onsubmit="handleFirstPasswordChange(event)" class="p-6 space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nova Senha</label>
-                    <input type="password" id="firstNewPassword" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                    <input type="password" id="firstNewPassword" required minlength="4" placeholder="Digite a nova senha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Confirme a Nova Senha</label>
-                    <input type="password" id="firstConfirmPassword" required minlength="6" placeholder="Repita a nova senha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                    <input type="password" id="firstConfirmPassword" required minlength="4" placeholder="Repita a nova senha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
                 </div>
                 <button type="submit" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm rounded-lg transition shadow-md">
                     Atualizar Senha & Acessar
@@ -248,6 +241,7 @@
                     <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Buscar plaqueta, descrição, localização, observação..." class="pl-9 pr-3 py-2 text-sm w-full bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none uppercase">
                 </div>
 
+                <!-- SELETOR MULTIPLO DE FILTROS -->
                 <div class="relative w-full sm:w-72" id="filterDropdownContainer">
                     <button type="button" onclick="toggleFilterDropdown(event)" class="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none font-medium text-slate-700 flex items-center justify-between">
                         <span id="filterDropdownLabel" class="truncate">-- Selecionar Filtros --</span>
@@ -278,7 +272,7 @@
                     <i class="fa-solid fa-file-csv text-slate-600"></i>
                     <span>Exportar CSV</span>
                 </button>
-                <button id="btnClearLocalData" onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5" title="Limpar todo o banco local de teste">
+                <button id="btnClearLocalData" onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5" title="Limpar todo o banco de teste">
                     <i class="fa-solid fa-trash-can"></i>
                     <span>Limpar Tudo</span>
                 </button>
@@ -363,8 +357,8 @@
                             <input type="text" id="field_userName" required placeholder="Ex: João Silva" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">E-MAIL / LOGIN *</label>
-                            <input type="email" id="field_userLogin" required placeholder="jsilva@policiacivil.pr.gov.br" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">USUÁRIO / LOGIN *</label>
+                            <input type="text" id="field_userLogin" required placeholder="Ex: jsilva ou admin" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">PERFIL DE ACESSO *</label>
@@ -376,7 +370,7 @@
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">SENHA TEMPORÁRIA *</label>
-                            <input type="password" id="field_userPass" placeholder="Mínimo 6 caracteres" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
+                            <input type="password" id="field_userPass" placeholder="Senha inicial" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 pt-1">
@@ -392,7 +386,7 @@
                             <thead class="bg-slate-100 border-b border-slate-200 font-semibold text-slate-700">
                                 <tr>
                                     <th class="p-2">Nome</th>
-                                    <th class="p-2">E-mail / Login</th>
+                                    <th class="p-2">Usuário / Login</th>
                                     <th class="p-2">Perfil</th>
                                     <th class="p-2 text-center">Ações</th>
                                 </tr>
@@ -527,7 +521,7 @@
         </div>
     </div>
 
-    <!-- Modal Importar CSV -->
+    <!-- Modal Importar CSV (Exclusivo Administrador) -->
     <div id="importModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
         <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
             <div class="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between">
@@ -561,7 +555,7 @@
         </div>
     </div>
 
-    <!-- Modal Comparar CSV -->
+    <!-- Modal Comparar CSV (Exclusivo Administrador) -->
     <div id="compareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
         <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
             <div class="px-6 py-4 bg-indigo-900 text-white flex items-center justify-between">
@@ -674,9 +668,9 @@
     <script>
         // Usuários Padrão Iniciais
         const DEFAULT_USERS = [
-            { id: 'usr_admin', name: 'Administrador', login: 'admin@policiacivil.pr.gov.br', role: 'admin', isFirstAccess: false },
-            { id: 'usr_op', name: 'Operador', login: 'operador@policiacivil.pr.gov.br', role: 'operator', isFirstAccess: false },
-            { id: 'usr_view', name: 'Visualizador', login: 'visu@policiacivil.pr.gov.br', role: 'viewer', isFirstAccess: false }
+            { id: 'usr_admin', name: 'Administrador', login: 'admin', pass: '1234', role: 'admin', isFirstAccess: false },
+            { id: 'usr_op', name: 'Operador', login: 'operador', pass: 'op123', role: 'operator', isFirstAccess: false },
+            { id: 'usr_view', name: 'Visualizador', login: 'visu', pass: 'visu123', role: 'viewer', isFirstAccess: false }
         ];
 
         // Lista de Localizações Padrão
@@ -714,22 +708,16 @@
             initFirebaseListeners();
         };
 
-        // INTEGRAÇÃO COM FIREBASE REALTIME DATABASE + AUTH (Sugestão 1 e 3)
+        // INTEGRAÇÃO REALTIME DATABASE COM FIREBASE
         function initFirebaseListeners() {
             try {
-                window.fbOnAuthStateChanged(window.fbAuth, (user) => {
-                    if (user) {
-                        fetchUserProfile(user);
-                    } else {
-                        currentUser = null;
-                        currentRole = 'viewer';
-                        document.getElementById('loginScreen').classList.remove('hidden');
-                    }
-                });
-
                 window.fbOnValue(window.fbRef(window.fbDB, 'patrimonio_itens'), (snapshot) => {
                     const data = snapshot.val();
-                    items = data ? Object.keys(data).map(k => ({ id: k, ...data[k] })) : [];
+                    if (data) {
+                        items = Object.keys(data).map(k => ({ id: k, ...data[k] }));
+                    } else {
+                        items = [];
+                    }
                     saveLocalCache();
                     renderTable();
                     renderKpis();
@@ -752,6 +740,7 @@
                     const data = snapshot.val();
                     users = data ? Object.keys(data).map(k => ({ id: k, ...data[k] })) : [...DEFAULT_USERS];
                     saveLocalCache();
+                    checkSessionLogin();
                 }, (error) => {
                     handleDbError(error);
                 });
@@ -760,24 +749,10 @@
             }
         }
 
-        function fetchUserProfile(firebaseUser) {
-            window.fbOnValue(window.fbRef(window.fbDB, `patrimonio_usuarios/${firebaseUser.uid}`), (snapshot) => {
-                const userData = snapshot.val();
-                if (userData) {
-                    currentUser = { id: firebaseUser.uid, ...userData };
-                    currentRole = userData.role || 'viewer';
-                } else {
-                    currentUser = { id: firebaseUser.uid, name: firebaseUser.email, login: firebaseUser.email, role: 'viewer' };
-                    currentRole = 'viewer';
-                }
-                document.getElementById('loginScreen').classList.add('hidden');
-                setupUserUI();
-            }, { onlyOnce: true });
-        }
-
         function handleDbError(err) {
-            console.warn('Operando em modo offline com cache criptografado:', err);
+            console.warn('Operando com dados do cache local devido a erro ou desconexão:', err);
             loadLocalCache();
+            checkSessionLogin();
         }
 
         function loadLocalCache() {
@@ -787,8 +762,18 @@
             const storedLocs = localStorage.getItem('cache_patrimonio_locais');
             locations = storedLocs ? JSON.parse(storedLocs) : [...DEFAULT_LOCATIONS];
 
+            // Sugestão 4: Leitura Criptografada (SHA-256 / AES)
             const storedUsers = localStorage.getItem('cache_patrimonio_usuarios');
-            users = storedUsers ? JSON.parse(storedUsers) : [...DEFAULT_USERS];
+            if (storedUsers) {
+                try {
+                    const bytes = CryptoJS.AES.decrypt(storedUsers, 'PCPR_SECURE_KEY');
+                    users = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                } catch(e) {
+                    users = [...DEFAULT_USERS];
+                }
+            } else {
+                users = [...DEFAULT_USERS];
+            }
 
             if (!locations.includes('NÃO LOCALIZADO')) locations.push('NÃO LOCALIZADO');
 
@@ -797,13 +782,11 @@
             renderKpis();
         }
 
-        // Sugestão 4: Criptografia SHA-256 no Cache Local
+        // Sugestão 4: Gravação Criptografada do Cache Local
         function saveLocalCache() {
             try {
                 localStorage.setItem('cache_patrimonio_itens', JSON.stringify(items));
                 localStorage.setItem('cache_patrimonio_locais', JSON.stringify(locations));
-                
-                // Criptografa o cache de usuários antes de gravar no localStorage
                 const encryptedUsers = CryptoJS.AES.encrypt(JSON.stringify(users), 'PCPR_SECURE_KEY').toString();
                 localStorage.setItem('cache_patrimonio_usuarios', encryptedUsers);
             } catch(e) {}
@@ -859,24 +842,46 @@
             }
         }
 
-        // Sugestão 1: Login via Firebase Auth
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginUsername').value.trim();
-            const pass = document.getElementById('loginPassword').value.trim();
+        function checkSessionLogin() {
+            const loggedUserId = localStorage.getItem('patrimonio_logged_user_id');
+            if (loggedUserId) {
+                const found = users.find(u => u.id === loggedUserId);
+                if (found) {
+                    currentUser = found;
+                    currentRole = found.role;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    setupUserUI();
+                    return;
+                }
+            }
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
 
-            try {
-                showToast('Autenticando credenciais...', 'info');
-                await window.fbSignIn(window.fbAuth, email, pass);
-                document.getElementById('loginPassword').value = '';
-                showToast('Acesso autorizado!', 'success');
-            } catch (err) {
-                console.error(err);
-                showToast('E-mail ou senha inválidos no Firebase Auth.', 'error');
+        // Login Gerenciado Pelo Próprio App (Sem exigência de e-mail ou @policiacivil.pr.gov.br)
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            const found = users.find(usr => usr.login.toLowerCase() === u && usr.pass === p);
+            if (found) {
+                currentUser = found;
+                currentRole = found.role;
+                localStorage.setItem('patrimonio_logged_user_id', found.id);
+
+                if (found.isFirstAccess) {
+                    document.getElementById('firstAccessModal').classList.remove('hidden');
+                } else {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    setupUserUI();
+                    showToast(`Bem-vindo, ${found.name}!`, 'success');
+                }
+            } else {
+                showToast('Usuário ou senha inválidos.', 'error');
             }
         }
 
-        async function handleFirstPasswordChange(e) {
+        function handleFirstPasswordChange(e) {
             e.preventDefault();
             const newP = document.getElementById('firstNewPassword').value.trim();
             const confP = document.getElementById('firstConfirmPassword').value.trim();
@@ -886,27 +891,23 @@
                 return;
             }
 
-            try {
-                if (window.fbAuth.currentUser) {
-                    await window.fbUpdatePassword(window.fbAuth.currentUser, newP);
-                    document.getElementById('firstAccessModal').classList.add('hidden');
-                    showToast('Nova senha configurada com sucesso!', 'success');
-                }
-            } catch (err) {
-                showToast('Erro ao atualizar a senha: ' + err.message, 'error');
+            if (currentUser) {
+                currentUser.pass = newP;
+                currentUser.isFirstAccess = false;
+                saveUsersToFirebase();
+                document.getElementById('firstAccessModal').classList.add('hidden');
+                document.getElementById('loginScreen').classList.add('hidden');
+                setupUserUI();
+                showToast('Nova senha cadastrada com sucesso!', 'success');
             }
         }
 
-        async function logout() {
-            try {
-                await window.fbSignOut(window.fbAuth);
-                currentUser = null;
-                currentRole = 'viewer';
-                document.getElementById('loginScreen').classList.remove('hidden');
-                showToast('Sessão encerrada com segurança.', 'info');
-            } catch (err) {
-                showToast('Erro ao encerrar sessão.', 'error');
-            }
+        function logout() {
+            localStorage.removeItem('patrimonio_logged_user_id');
+            currentUser = null;
+            currentRole = 'viewer';
+            document.getElementById('loginScreen').classList.remove('hidden');
+            showToast('Sessão encerrada com segurança.', 'info');
         }
 
         function setupUserUI() {
@@ -997,7 +998,7 @@
                     <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : u.role === 'operator' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700'}">${roleLabels[u.role]}</span></td>
                     <td class="p-2 text-center">
                         <button onclick="editUser('${u.id}')" class="text-blue-600 hover:text-blue-800 p-1 rounded" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
-                        ${u.login !== 'admin@policiacivil.pr.gov.br' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 p-1 rounded" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        ${u.login !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 p-1 rounded" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1064,7 +1065,7 @@
             const u = users.find(usr => usr.id === userId);
             if (!u) return;
 
-            if (u.login === 'admin@policiacivil.pr.gov.br') {
+            if (u.login === 'admin') {
                 showToast('Não é possível excluir o administrador principal.', 'error');
                 return;
             }
@@ -1872,7 +1873,7 @@
                 const rawPlaq = (plaqIdx >= 0 && plaqIdx < row.length) ? row[plaqIdx] : '';
                 const cleanPlaq = String(rawPlaq).replace(/['"]/g, '').replace(/\D/g, '').trim();
 
-                const rawLoc = (locIdx >= 0 && locIdx < row.length) ? row[locIdx].trim().toUpperCase() : '';
+                const rawLoc = (locIdx >= 0 && locIdx < row.length) ? row[row.length > locIdx ? locIdx : 1].trim().toUpperCase() : '';
                 const localizacao = rawLoc || 'NÃO LOCALIZADO';
 
                 const rawDesc = (descIdx >= 0 && descIdx < row.length) ? row[descIdx].trim().toUpperCase() : '';
