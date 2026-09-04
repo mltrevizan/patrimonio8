@@ -78,17 +78,17 @@
         }
     </style>
 
-    <!-- FIREBASE SDK MODULAR -->
+    <!-- FIREBASE SDK MODULAR (Configuração atualizada para patrimonio8-34c99) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
-            authDomain: "controle-8.firebaseapp.com",
-            databaseURL: "https://controle-8-default-rtdb.firebaseio.com",
-            projectId: "controle-8",
-            storageBucket: "controle-8.firebasestorage.app",
+            authDomain: "patrimonio8-34c99.firebaseapp.com",
+            databaseURL: "https://patrimonio8-34c99-default-rtdb.firebaseio.com",
+            projectId: "patrimonio8-34c99",
+            storageBucket: "patrimonio8-34c99.firebasestorage.app",
             messagingSenderId: "947700116966",
             appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
         };
@@ -270,7 +270,7 @@
                     <i class="fa-solid fa-file-csv text-slate-600"></i>
                     <span>Exportar CSV</span>
                 </button>
-                <button id="btnClearLocalData" onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5" title="Limpar todo o banco local de teste">
+                <button id="btnClearLocalData" onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5" title="Limpar todo o banco de teste">
                     <i class="fa-solid fa-trash-can"></i>
                     <span>Limpar Tudo</span>
                 </button>
@@ -895,6 +895,10 @@
             showToast('Sessão encerrada.', 'info');
         }
 
+        // PERMISSÕES POR PERFIL:
+        // Admin: Total
+        // Operador: Inclusão, Edição, Alterar em Massa, Etiquetas, Localizações
+        // Visualizador: Leitura, Consultas, Impressão e Etiquetas
         function setupUserUI() {
             document.getElementById('headerUserName').textContent = currentUser.name;
             const roles = { admin: 'Administrador', operator: 'Operador', viewer: 'Visualizador' };
