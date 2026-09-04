@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Patrimônio - Delegacia de Polícia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- JsBarcode Lib -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { police: { 800: '#1e293b', 900: '#0f172a', gold: '#d97706' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sheet-table th, .sheet-table td { padding: 0.5rem 0.75rem; font-size: 0.8125rem; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .sheet-table th { background-color: #f8fafc; font-weight: 600; color: #334155; position: sticky; top: 0; z-index: 10; }
+        .sheet-table tr:nth-child(even) { background-color: #f8fafc; }
+        .sheet-table tr:hover { background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .barcode-label {
+            width: 4cm;
+            height: 2cm;
+            padding: 1.5mm;
+            border: 1px dashed #cbd5e1;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            page-break-inside: avoid;
+            overflow: hidden;
+        }
+
+        .barcode-label svg {
+            max-width: 3.7cm;
+            max-height: 1.2cm;
+            width: 100%;
+        }
+
+        @media print {
+            @page { size: A4 portrait; margin: 8mm; }
+            body { background: white !important; color: black !important; font-size: 10pt; }
+            .no-print, header, #kpiContainer, .filter-bar, .modal, #toastContainer, td button, td select, #barcodePrintArea { display: none !important; }
+            #printArea { display: block !important; width: 100% !important; }
+            table.print-table { width: 100%; border-collapse: collapse; }
+            table.print-table th, table.print-table td { border: 1px solid #666 !important; padding: 4px 6px !important; font-size: 8pt !important; word-wrap: break-word; white-space: normal !important; }
+            table.print-table th { background-color: #eee !important; color: #000 !important; }
+
+            body.printing-barcodes #printArea { display: none !important; }
+            body.printing-barcodes #barcodePrintArea {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 2mm !important;
+                justify-content: flex-start !important;
+            }
+            body.printing-barcodes .barcode-label {
+                border: 1px solid #94a3b8 !important;
+            }
+        }
+    </style>
+
+    <!-- FIREBASE SDK MODULAR -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
+            authDomain: "controle-8.firebaseapp.com",
+            databaseURL: "https://controle-8-default-rtdb.firebaseio.com",
+            projectId: "controle-8",
+            storageBucket: "controle-8.firebasestorage.app",
+            messagingSenderId: "947700116966",
+            appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.fbDB = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbUpdate = update;
+        window.fbRemove = remove;
+        window.fbOnValue = onValue;
+    </script>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-slate-700 selection:text-white" onclick="handleGlobalClick(event)">
+
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div class="p-6 bg-slate-900 text-white text-center border-b border-slate-800 space-y-2 flex flex-col items-center">
+                <div class="p-3 bg-slate-800 rounded-xl border border-slate-700 mb-1 flex items-center justify-center">
+                    <i class="fa-solid fa-boxes-packing text-amber-500 text-3xl"></i>
+                </div>
+                <h2 class="font-bold text-xl tracking-wide">Gestão de Patrimônio</h2>
+                <p class="text-xs text-slate-400">Delegacia de Polícia - Controle de Bens</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Usuário / Login</label>
+                    <input type="text" id="loginUsername" required placeholder="Ex: admin" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Senha</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-lg transition shadow-md flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Entrar no Sistema</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Primeiro Acesso -->
+    <div id="firstAccessModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-amber-300 w-full max-w-md overflow-hidden">
+            <div class="p-5 bg-amber-600 text-white flex items-center gap-3">
+                <i class="fa-solid fa-key text-2xl"></i>
+                <div>
+                    <h3 class="font-bold text-base">Primeiro Acesso Detectado</h3>
+                    <p class="text-xs text-amber-100">Altere sua senha temporária para continuar.</p>
+                </div>
+            </div>
+            <form onsubmit="handleFirstPasswordChange(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nova Senha</label>
+                    <input type="password" id="firstNewPassword" required minlength="4" placeholder="Digite a nova senha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Confirme a Nova Senha</label>
+                    <input type="password" id="firstConfirmPassword" required minlength="4" placeholder="Repita a nova senha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm rounded-lg transition shadow-md">
+                    Atualizar Senha & Acessar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header Principal (Sem contorno no título e com fonte aumentada para destaque) -->
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-700 sticky top-0 z-20 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Título destacado sem contorno/borda de botão -->
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-boxes-packing text-amber-500 text-2xl"></i>
+                    <div class="flex flex-col justify-center">
+                        <span class="font-bold text-base leading-tight tracking-wide text-white">Gestão de Patrimônio</span>
+                        <span class="text-[10px] text-slate-400 font-medium leading-none">Delegacia de Polícia</span>
+                    </div>
+                </div>
+
+                <!-- Botões com largura reduzida (px-2.5 h-9 text-xs) e visual simétrico -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2">
+                    <div class="flex items-center bg-slate-800 border border-slate-700 rounded-md px-2 h-9 text-xs gap-1.5">
+                        <i class="fa-solid fa-user text-amber-400 text-xs"></i>
+                        <div class="text-left">
+                            <span id="headerUserName" class="font-bold text-slate-200 block truncate max-w-[85px] text-[11px] leading-none">Usuário</span>
+                            <span id="headerUserRole" class="text-[9px] text-slate-400 uppercase block leading-none mt-0.5">Perfil</span>
+                        </div>
+                    </div>
+
+                    <!-- Botão Impressão de Códigos de Barras -->
+                    <button onclick="openBarcodeModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Imprimir Etiquetas com Código de Barras">
+                        <i class="fa-solid fa-barcode text-amber-400"></i>
+                        <span class="hidden md:inline">Etiquetas Barcode</span>
+                    </button>
+
+                    <!-- Administrador -->
+                    <button id="btnManageUsers" onclick="openUsersModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Gerenciar Usuários">
+                        <i class="fa-solid fa-users-gear text-amber-400"></i>
+                        <span class="hidden md:inline">Usuários</span>
+                    </button>
+
+                    <!-- Operador e Administrador -->
+                    <button id="btnManageLocations" onclick="openLocationModal()" class="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center justify-center gap-1.5 whitespace-nowrap" title="Gerenciar Localizações">
+                        <i class="fa-solid fa-location-dot text-amber-400"></i>
+                        <span class="hidden md:inline">Localizações</span>
+                    </button>
+                    
+                    <!-- Exclusivo Administrador -->
+                    <button id="btnCompare" onclick="openCompareModal()" class="h-9 px-2.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-code-compare"></i>
+                        <span class="hidden md:inline">Comparar CSV</span>
+                    </button>
+
+                    <!-- Operador e Administrador -->
+                    <button id="btnAddItem" onclick="openItemModal()" class="h-9 px-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Novo Item</span>
+                    </button>
+
+                    <!-- Operador e Administrador -->
+                    <button id="btnBulkLocationHeader" onclick="openBulkLocationModal()" class="h-9 px-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap" title="Alterar Localização de Todos os Itens Filtrados">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="hidden md:inline">Alterar em Massa</span>
+                    </button>
+
+                    <!-- Exclusivo Administrador -->
+                    <button id="btnImport" onclick="openImportModal()" class="h-9 px-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-md transition flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>Importar</span>
+                    </button>
+
+                    <button onclick="logout()" class="h-9 w-8 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 rounded-md border border-rose-800/50 transition flex items-center justify-center flex-shrink-0" title="Sair do Sistema">
+                        <i class="fa-solid fa-power-off text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-5">
+        
+        <!-- CARDS DE LOCALIZAÇÃO -->
+        <div id="kpiContainer" class="flex flex-wrap gap-1.5 no-print items-stretch max-h-64 overflow-y-auto p-2 pb-3 bg-slate-200/50 rounded-xl border border-slate-200"></div>
+
+        <!-- BARRA DE FILTROS E BUSCA -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between filter-bar no-print">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                <div class="relative flex-1 min-w-[200px]">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </div>
+                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Buscar plaqueta, descrição, localização, observação..." class="pl-9 pr-3 py-2 text-sm w-full bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none uppercase">
+                </div>
+
+                <!-- SELETOR MULTIPLO DE FILTROS -->
+                <div class="relative w-full sm:w-72" id="filterDropdownContainer">
+                    <button type="button" onclick="toggleFilterDropdown(event)" class="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 outline-none font-medium text-slate-700 flex items-center justify-between">
+                        <span id="filterDropdownLabel" class="truncate">-- Selecionar Filtros --</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                    </button>
+
+                    <div id="filterDropdownMenu" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-2 max-h-64 overflow-y-auto space-y-1">
+                        <div class="flex justify-between items-center px-1 pb-1 mb-1 border-b border-slate-100 text-[11px]">
+                            <button type="button" onclick="toggleAllFilters(true)" class="text-blue-600 hover:underline font-semibold">Marcar Todos</button>
+                            <button type="button" onclick="toggleAllFilters(false)" class="text-slate-500 hover:underline">Desmarcar Todos</button>
+                        </div>
+                        <div id="filterCheckboxesContainer" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <button onclick="clearFilters()" class="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-100 transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-filter-circle-xmark"></i>
+                    <span>Limpar Filtros</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 self-end md:self-auto border-t md:border-t-0 pt-2 md:pt-0 border-slate-100">
+                <button onclick="openPrintModal()" class="px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print text-slate-600"></i>
+                    <span>Imprimir / PDF</span>
+                </button>
+                <button id="btnExport" onclick="executeExportCSV()" class="px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-csv text-slate-600"></i>
+                    <span>Exportar CSV</span>
+                </button>
+                <button id="btnClearLocalData" onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1.5" title="Limpar todo o banco local de teste">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Limpar Tudo</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TABELA PRINCIPAL -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden min-h-[400px] no-print">
+            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Exibindo <strong id="recordCount" class="text-slate-900">0</strong> itens</span>
+                </div>
+                <div id="activeFilterBadge" class="hidden bg-slate-800 text-white px-2 py-0.5 rounded font-semibold text-[11px] flex items-center gap-1">
+                    <span>Filtros Ativos: <strong id="activeFilterName">0</strong></span>
+                    <i class="fa-solid fa-xmark cursor-pointer ml-1 hover:text-slate-300" onclick="clearFilters()"></i>
+                </div>
+            </div>
+
+            <div id="mainTableWrapper" class="flex-1 overflow-auto relative">
+                <table id="mainTable" class="w-full text-left sheet-table border-collapse">
+                    <thead>
+                        <tr class="select-none">
+                            <th class="w-24 text-center bg-slate-100 sticky left-0 z-20 border-r border-slate-300">Ações</th>
+                            <th onclick="sortTableBy('plaqueta')" class="cursor-pointer hover:bg-slate-200 transition">Plaqueta <span id="sort_icon_plaqueta" class="text-[10px] text-slate-400">↕</span></th>
+                            <th onclick="sortTableBy('localizacao')" class="cursor-pointer hover:bg-slate-200 transition">Localização <span id="sort_icon_localizacao" class="text-[10px] text-slate-400">↕</span></th>
+                            <th onclick="sortTableBy('descricao')" class="cursor-pointer hover:bg-slate-200 transition">Descrição do Item <span id="sort_icon_descricao" class="text-[10px] text-slate-400">↕</span></th>
+                            <th onclick="sortTableBy('listaDie')" class="cursor-pointer hover:bg-slate-200 transition">Lista da DIE? <span id="sort_icon_listaDie" class="text-[10px] text-slate-400">↕</span></th>
+                            <th onclick="sortTableBy('observacao')" class="cursor-pointer hover:bg-slate-200 transition">Observação <span id="sort_icon_observacao" class="text-[10px] text-slate-400">↕</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody" class="divide-y divide-slate-200"></tbody>
+                </table>
+                <div id="emptyState" class="hidden py-16 flex flex-col items-center justify-center text-center text-slate-400">
+                    <i class="fa-solid fa-boxes-stack text-5xl mb-3 text-slate-300"></i>
+                    <p class="text-base font-medium text-slate-600">Nenhum patrimônio encontrado</p>
+                    <p class="text-xs mt-1 text-slate-400">Ajuste os filtros ou cadastre novos itens.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Histórico de Movimentações -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    <span>Histórico de Movimentações</span>
+                </h3>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-3 max-h-[60vh] overflow-y-auto" id="historyContentContainer"></div>
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeHistoryModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciamento de Usuários -->
+    <div id="usersModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-amber-400"></i>
+                    <span>Gerenciar Usuários e Perfis</span>
+                </h3>
+                <button onclick="closeUsersModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+                <form id="userForm" onsubmit="saveUser(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <h4 id="userFormTitle" class="text-xs font-bold uppercase text-slate-700">Cadastrar Novo Usuário</h4>
+                    <input type="hidden" id="userEditId">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">NOME COMPLETO *</label>
+                            <input type="text" id="field_userName" required placeholder="Ex: João Silva" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">USUÁRIO / LOGIN *</label>
+                            <input type="text" id="field_userLogin" required placeholder="Ex: jsilva" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">PERFIL DE ACESSO *</label>
+                            <select id="field_userRole" required class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800 bg-white">
+                                <option value="viewer">Visualizador (Apenas Consultas)</option>
+                                <option value="operator">Operador (Inclusão/Edição Completa)</option>
+                                <option value="admin">Administrador (Acesso Total)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">SENHA TEMPORÁRIA *</label>
+                            <input type="password" id="field_userPass" placeholder="Senha temporária" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-800">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button type="button" onclick="resetUserForm()" class="px-3 py-1.5 text-xs text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg transition">Cancelar</button>
+                        <button type="submit" class="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition">Salvar Usuário</button>
+                    </div>
+                </form>
+
+                <div>
+                    <h4 class="text-xs font-bold uppercase text-slate-700 mb-2">Usuários Cadastrados</h4>
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 border-b border-slate-200 font-semibold text-slate-700">
+                                <tr>
+                                    <th class="p-2">Nome</th>
+                                    <th class="p-2">Login</th>
+                                    <th class="p-2">Perfil</th>
+                                    <th class="p-2 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar / Editar Item -->
+    <div id="itemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 id="modalItemTitle" class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-box"></i>
+                    <span>Cadastrar Item</span>
+                </h3>
+                <button onclick="closeItemModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="itemForm" onsubmit="saveItem(event)" class="p-6 space-y-4">
+                <input type="hidden" id="itemId">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">PLAQUETA * (12 dígitos ou SEM PATRIMÔNIO)</label>
+                    <input type="text" id="field_plaqueta" required oninput="handlePlaquetaInput(this)" placeholder="Ex: 123456789012 ou SEM PATRIMÔNIO" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none font-mono uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">LOCALIZAÇÃO *</label>
+                    <input type="text" id="field_localizacao" list="locationsDatalist" required placeholder="Digite para buscar ou selecione..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none uppercase">
+                    <datalist id="locationsDatalist"></datalist>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">DESCRIÇÃO DO ITEM *</label>
+                    <input type="text" id="field_descricao" required placeholder="Ex: Cadeira Giratória Preta" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">LISTA DA DIE? *</label>
+                    <select id="field_listaDie" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none bg-white font-medium">
+                        <option value="SIM">SIM</option>
+                        <option value="NÃO">NÃO</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">OBSERVAÇÃO</label>
+                    <textarea id="field_observacao" rows="3" placeholder="Estado de conservação, detalhes adicionais..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none resize-y"></textarea>
+                </div>
+
+                <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeItemModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-medium text-white bg-blue-700 hover:bg-blue-600 rounded-lg transition shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Salvar Item</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Modificação em Massa de Localização -->
+    <div id="bulkLocationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-amber-400"></i>
+                    <span>Alterar Localização em Massa</span>
+                </h3>
+                <button onclick="closeBulkLocationModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    Esta ação alterará a localização de <strong><span id="bulkItemsCount">0</span> item(ns)</strong> visíveis/filtrados na tela.
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">NOVA LOCALIZAÇÃO *</label>
+                    <input type="text" id="bulk_localizacao" list="locationsDatalist" required placeholder="Digite ou selecione a nova localização..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none uppercase">
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeBulkLocationModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">Cancelar</button>
+                <button onclick="executeBulkLocationUpdate()" class="px-4 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Confirmar Alteração</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciar Localizações -->
+    <div id="locationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-location-dot text-amber-400"></i>
+                    <span>Gerenciar Localizações</span>
+                </h3>
+                <button onclick="closeLocationModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <form onsubmit="addCustomLocation(event)" class="flex gap-2">
+                    <input type="text" id="newLocationInput" required placeholder="Nova localização..." class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none uppercase">
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Adicionar</span>
+                    </button>
+                </form>
+
+                <div class="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-60 overflow-y-auto" id="locationsListContainer"></div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeLocationModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">Concluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Importar CSV (Exclusivo Administrador) -->
+    <div id="importModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <span>Importar Arquivo CSV</span>
+                </h3>
+                <button onclick="closeImportModal()" class="text-emerald-200 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Selecione o arquivo CSV</label>
+                    <input type="file" id="csvFileInput" accept=".csv, .tsv, .txt" onchange="handleFileUpload(event)" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                </div>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-2 text-[10px] text-slate-400 font-semibold uppercase">ou cole o texto CSV</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <div>
+                    <textarea id="csvPasteInput" rows="5" placeholder="PLAQUETA;LOCALIZACAO;DESCRICAO;OBSERVACAO" class="w-full p-2.5 text-xs font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 outline-none resize-none"></textarea>
+                </div>
+                <button onclick="importFromText()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-medium text-xs sm:text-sm rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Processar Importação</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Comparar CSV (Exclusivo Administrador) -->
+    <div id="compareModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-indigo-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare"></i>
+                    <span>Ferramenta Comparar CSV</span>
+                </h3>
+                <button onclick="closeCompareModal()" class="text-indigo-200 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-600">
+                    O arquivo CSV será comparado pelo campo <strong>PLAQUETA</strong>:
+                </p>
+                <ul class="text-xs text-slate-600 list-disc pl-4 space-y-1">
+                    <li>Se a plaqueta existir: Atualiza a <strong>LOCALIZAÇÃO</strong> do item cadastrado.</li>
+                    <li>Se a plaqueta de 12 dígitos NÃO coincidir: Cadastra com o número original da plaqueta, descrição e localização do arquivo, e marca "Lista da DIE? = NÃO".</li>
+                    <li>Se não tiver numeração de 12 dígitos: Cadastra com "SEM PATRIMÔNIO" e "Lista da DIE? = NÃO".</li>
+                </ul>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Selecione o CSV para comparação</label>
+                    <input type="file" id="compareFileInput" accept=".csv, .tsv, .txt" onchange="handleCompareUpload(event)" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configuração de Impressão de Tabela -->
+    <div id="printModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-print text-slate-300"></i>
+                    <span>Configurar Impressão / PDF</span>
+                </h3>
+                <button onclick="closePrintModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Selecione as Colunas para Impressão:</label>
+                    <div id="printColumnsContainer" class="space-y-2 border border-slate-200 p-3 rounded-lg text-xs"></div>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closePrintModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">Cancelar</button>
+                <button onclick="triggerPrintProcess()" class="px-4 py-2 text-xs font-medium text-white bg-blue-700 hover:bg-blue-600 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimir / Gerar PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Impressão de Etiquetas Barcode -->
+    <div id="barcodeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-auto">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-barcode text-amber-400"></i>
+                    <span>Gerar Etiquetas de Código de Barras (4cm x 2cm)</span>
+                </h3>
+                <button onclick="closeBarcodeModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <p class="text-xs text-slate-600">
+                    As etiquetas abaixo serão geradas para os <strong id="barcodeItemsCount">0</strong> itens visíveis com patrimônio. Cada conjunto possui dimensões exatas de <strong>4cm × 2cm</strong>.
+                </p>
+
+                <!-- Container visualizador de etiquetas -->
+                <div id="barcodePreviewGrid" class="flex flex-wrap gap-2 p-3 bg-slate-100 border border-slate-200 rounded-lg justify-center max-h-80 overflow-y-auto"></div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeBarcodeModal()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">Cancelar</button>
+                <button onclick="triggerBarcodePrint()" class="px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimir Etiquetas</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Area Tabela (Sem códigos de barras) -->
+    <div id="printArea" class="hidden">
+        <div class="mb-4 text-center border-b pb-2">
+            <h2 class="text-xl font-bold uppercase">Relatório de Gestão de Patrimônio - Delegacia de Polícia</h2>
+            <p class="text-xs text-gray-600">Gerado em: <span id="printDate"></span></p>
+        </div>
+        <table class="print-table">
+            <thead id="printTableHead"></thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Printable Area Barcode Labels -->
+    <div id="barcodePrintArea" class="hidden"></div>
+
+    <!-- Notification Toasts -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+    <script>
+        // Usuários Padrão Iniciais
+        const DEFAULT_USERS = [
+            { id: 'usr_admin', name: 'Administrador', login: 'admin', pass: '1234', role: 'admin', isFirstAccess: false },
+            { id: 'usr_op', name: 'Operador', login: 'operador', pass: 'op123', role: 'operator', isFirstAccess: false },
+            { id: 'usr_view', name: 'Visualizador', login: 'visu', pass: 'visu123', role: 'viewer', isFirstAccess: false }
+        ];
+
+        // Lista de Localizações Padrão
+        const DEFAULT_LOCATIONS = [
+            'PLANTÃO GERAL', 'SALA DO DELEGADO-CHEFE', 'SALA SUPERINTENDÊNCIA', 'SALA DO DELEGADO GILSON',
+            'SALA DELEGADO JOSÉ JÚLIO', 'COZINHA', 'CORREDOR DAS SALAS DOS DELEGADOS', 'RECEPÇÃO',
+            'SALA TECIP', 'CARTÓRIO DISTRIBUIDOR', 'CARTÓRIO 01', 'CARTÓRIO 02', 'CARTÓRIO 03',
+            'CARTÓRIO 04', 'CARTÓRIO 05', 'CARTÓRIO 06', 'CARTÓRIO 07', 'SALA DA INTELIGÊNCIA',
+            'SALA DA FURTOS', 'SALA DO GDE', 'SALA PSICÓLOGA', 'CARTÓRIO CHEFE',
+            'CENTRAL DE TRIAGEM (POLICIA MILITAR)', 'CENTRAL DE FLAGRANTES', 'BOLETIM DE OCORRÊNCIA',
+            'CORREDOR FUNDOS', 'CORRÓ', 'NÃO LOCALIZADO'
+        ];
+
+        const ALL_FIELDS = [
+            { key: 'plaqueta', label: 'PLAQUETA' },
+            { key: 'localizacao', label: 'LOCALIZAÇÃO' },
+            { key: 'descricao', label: 'DESCRIÇÃO DO ITEM' },
+            { key: 'listaDie', label: 'LISTA DA DIE?' },
+            { key: 'observacao', label: 'OBSERVAÇÃO' }
+        ];
+
+        const DEFAULT_PRINT_KEYS = ['plaqueta', 'localizacao', 'descricao', 'listaDie'];
+
+        let items = [];
+        let locations = [];
+        let users = [];
+        let currentUser = null;
+        let currentRole = 'viewer';
+        let currentLocalFilter = null;
+        let selectedFilterOptions = [];
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
+
+        window.onload = function() {
+            initFirebaseListeners();
+        };
+
+        // INTEGRAÇÃO REALTIME DATABASE COM FIREBASE
+        function initFirebaseListeners() {
+            try {
+                window.fbOnValue(window.fbRef(window.fbDB, 'patrimonio_itens'), (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        items = Object.keys(data).map(k => ({ id: k, ...data[k] }));
+                    } else {
+                        items = [];
+                    }
+                    saveLocalCache();
+                    renderTable();
+                    renderKpis();
+                }, (error) => {
+                    handleDbError(error);
+                });
+
+                window.fbOnValue(window.fbRef(window.fbDB, 'patrimonio_locais'), (snapshot) => {
+                    const data = snapshot.val();
+                    locations = data ? Object.values(data) : [...DEFAULT_LOCATIONS];
+                    if (!locations.includes('NÃO LOCALIZADO')) locations.push('NÃO LOCALIZADO');
+                    saveLocalCache();
+                    renderLocationsUI();
+                    renderKpis();
+                }, (error) => {
+                    handleDbError(error);
+                });
+
+                window.fbOnValue(window.fbRef(window.fbDB, 'patrimonio_usuarios'), (snapshot) => {
+                    const data = snapshot.val();
+                    users = data ? Object.keys(data).map(k => ({ id: k, ...data[k] })) : [...DEFAULT_USERS];
+                    saveLocalCache();
+                    checkSessionLogin();
+                }, (error) => {
+                    handleDbError(error);
+                });
+            } catch (err) {
+                handleDbError(err);
+            }
+        }
+
+        function handleDbError(err) {
+            console.warn('Operando com dados do cache local devido a erro ou desconexão:', err);
+            loadLocalCache();
+            checkSessionLogin();
+        }
+
+        function loadLocalCache() {
+            const storedItems = localStorage.getItem('cache_patrimonio_itens');
+            items = storedItems ? JSON.parse(storedItems) : [];
+
+            const storedLocs = localStorage.getItem('cache_patrimonio_locais');
+            locations = storedLocs ? JSON.parse(storedLocs) : [...DEFAULT_LOCATIONS];
+
+            const storedUsers = localStorage.getItem('cache_patrimonio_usuarios');
+            users = storedUsers ? JSON.parse(storedUsers) : [...DEFAULT_USERS];
+
+            if (!locations.includes('NÃO LOCALIZADO')) locations.push('NÃO LOCALIZADO');
+
+            renderLocationsUI();
+            renderTable();
+            renderKpis();
+        }
+
+        function saveLocalCache() {
+            localStorage.setItem('cache_patrimonio_itens', JSON.stringify(items));
+            localStorage.setItem('cache_patrimonio_locais', JSON.stringify(locations));
+            localStorage.setItem('cache_patrimonio_usuarios', JSON.stringify(users));
+        }
+
+        function saveItemsToFirebase() {
+            const updates = {};
+            items.forEach(item => {
+                updates[item.id] = item;
+            });
+            window.fbSet(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                .catch(err => console.error('Erro ao salvar no Firebase:', err));
+            saveLocalCache();
+        }
+
+        function saveLocationsToFirebase() {
+            window.fbSet(window.fbRef(window.fbDB, 'patrimonio_locais'), locations)
+                .catch(err => console.error('Erro ao salvar localizações no Firebase:', err));
+            saveLocalCache();
+        }
+
+        function saveUsersToFirebase() {
+            const usersObj = {};
+            users.forEach(u => { usersObj[u.id] = u; });
+            window.fbSet(window.fbRef(window.fbDB, 'patrimonio_usuarios'), usersObj)
+                .catch(err => console.error('Erro ao salvar usuários no Firebase:', err));
+            saveLocalCache();
+        }
+
+        function addHistoryLog(item, action, oldLoc, newLoc) {
+            if (!item.history) item.history = [];
+            const timestamp = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
+            const userName = currentUser ? currentUser.name : 'Sistema';
+            
+            item.history.push({
+                timestamp,
+                user: userName,
+                action,
+                oldLoc,
+                newLoc
+            });
+        }
+
+        function clearAllData() {
+            if (currentRole !== 'admin') return;
+            if (confirm('Tem certeza que deseja apagar todos os registros patrimoniais no Firebase?')) {
+                items = [];
+                window.fbRemove(window.fbRef(window.fbDB, 'patrimonio_itens'))
+                    .then(() => {
+                        saveLocalCache();
+                        renderTable();
+                        renderKpis();
+                        showToast('Banco de itens zerado com sucesso.', 'info');
+                    });
+            }
+        }
+
+        function checkSessionLogin() {
+            const loggedUserId = localStorage.getItem('patrimonio_logged_user_id');
+            if (loggedUserId) {
+                const found = users.find(u => u.id === loggedUserId);
+                if (found) {
+                    currentUser = found;
+                    currentRole = found.role;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    setupUserUI();
+                    return;
+                }
+            }
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            const found = users.find(usr => usr.login.toLowerCase() === u && usr.pass === p);
+            if (found) {
+                currentUser = found;
+                currentRole = found.role;
+                localStorage.setItem('patrimonio_logged_user_id', found.id);
+
+                if (found.isFirstAccess) {
+                    document.getElementById('firstAccessModal').classList.remove('hidden');
+                } else {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    setupUserUI();
+                    showToast(`Bem-vindo, ${found.name}!`, 'success');
+                }
+            } else {
+                showToast('Usuário ou senha inválidos.', 'error');
+            }
+        }
+
+        function handleFirstPasswordChange(e) {
+            e.preventDefault();
+            const newP = document.getElementById('firstNewPassword').value.trim();
+            const confP = document.getElementById('firstConfirmPassword').value.trim();
+
+            if (newP !== confP) {
+                showToast('As senhas não coincidem!', 'error');
+                return;
+            }
+
+            if (currentUser) {
+                currentUser.pass = newP;
+                currentUser.isFirstAccess = false;
+                saveUsersToFirebase();
+                document.getElementById('firstAccessModal').classList.add('hidden');
+                document.getElementById('loginScreen').classList.add('hidden');
+                setupUserUI();
+                showToast('Nova senha cadastrada com sucesso!', 'success');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('patrimonio_logged_user_id');
+            currentUser = null;
+            currentRole = 'viewer';
+            document.getElementById('loginScreen').classList.remove('hidden');
+            showToast('Sessão encerrada.', 'info');
+        }
+
+        function setupUserUI() {
+            document.getElementById('headerUserName').textContent = currentUser.name;
+            const roles = { admin: 'Administrador', operator: 'Operador', viewer: 'Visualizador' };
+            document.getElementById('headerUserRole').textContent = roles[currentUser.role] || currentUser.role;
+
+            const isViewer = currentRole === 'viewer';
+            const isAdmin = currentRole === 'admin';
+
+            document.getElementById('btnAddItem').style.display = isViewer ? 'none' : 'flex';
+            document.getElementById('btnBulkLocationHeader').style.display = isViewer ? 'none' : 'flex';
+            document.getElementById('btnManageLocations').style.display = isViewer ? 'none' : 'flex';
+
+            document.getElementById('btnImport').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('btnCompare').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('btnManageUsers').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('btnClearLocalData').style.display = isAdmin ? 'flex' : 'none';
+
+            renderTable();
+            renderKpis();
+        }
+
+        // HISTÓRICO DE AUDITORIA DE MOVIMENTAÇÕES
+        function openHistoryModal(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const container = document.getElementById('historyContentContainer');
+            container.innerHTML = '';
+
+            const historyList = item.history || [];
+
+            if (historyList.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Nenhum histórico registrado para este item.</p>`;
+            } else {
+                historyList.slice().reverse().forEach(h => {
+                    const div = document.createElement('div');
+                    div.className = 'border-l-2 border-slate-300 pl-3 py-1 text-xs space-y-0.5';
+                    div.innerHTML = `
+                        <div class="flex items-center justify-between text-slate-500 font-semibold">
+                            <span>${escapeHtml(h.action)}</span>
+                            <span>${escapeHtml(h.timestamp)}</span>
+                        </div>
+                        <div class="text-slate-700">De: <strong>${escapeHtml(h.oldLoc || '-')}</strong> → Para: <strong>${escapeHtml(h.newLoc || '-')}</strong></div>
+                        <div class="text-[10px] text-slate-400">Usuário: ${escapeHtml(h.user || 'Desconhecido')}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        // GERENCIAMENTO DE USUÁRIOS
+        function openUsersModal() {
+            if (currentRole !== 'admin') return;
+            renderUsersTable();
+            resetUserForm();
+            document.getElementById('usersModal').classList.remove('hidden');
+        }
+
+        function closeUsersModal() {
+            document.getElementById('usersModal').classList.add('hidden');
+        }
+
+        function resetUserForm() {
+            document.getElementById('userForm').reset();
+            document.getElementById('userEditId').value = '';
+            document.getElementById('userFormTitle').textContent = 'Cadastrar Novo Usuário';
+            document.getElementById('field_userPass').required = true;
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            const roleLabels = { admin: 'Administrador', operator: 'Operador', viewer: 'Visualizador' };
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-medium text-slate-800">${escapeHtml(u.name)}</td>
+                    <td class="p-2 font-mono text-slate-600">${escapeHtml(u.login)}</td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : u.role === 'operator' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700'}">${roleLabels[u.role]}</span></td>
+                    <td class="p-2 text-center">
+                        <button onclick="editUser('${u.id}')" class="text-blue-600 hover:text-blue-800 p-1 rounded" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                        ${u.login !== 'admin' ? `<button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 p-1 rounded" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editUser(userId) {
+            const u = users.find(usr => usr.id === userId);
+            if (!u) return;
+            document.getElementById('userEditId').value = u.id;
+            document.getElementById('field_userName').value = u.name;
+            document.getElementById('field_userLogin').value = u.login;
+            document.getElementById('field_userRole').value = u.role;
+            document.getElementById('field_userPass').value = '';
+            document.getElementById('field_userPass').required = false;
+            document.getElementById('userFormTitle').textContent = 'Editar Usuário (Preencha para redefinir senha temporária)';
+        }
+
+        function saveUser(e) {
+            e.preventDefault();
+            if (currentRole !== 'admin') return;
+
+            const id = document.getElementById('userEditId').value;
+            const name = document.getElementById('field_userName').value.trim();
+            const login = document.getElementById('field_userLogin').value.trim().toLowerCase();
+            const role = document.getElementById('field_userRole').value;
+            const pass = document.getElementById('field_userPass').value.trim();
+
+            if (users.some(u => u.login.toLowerCase() === login && u.id !== id)) {
+                showToast('Este login de usuário já existe!', 'error');
+                return;
+            }
+
+            if (id) {
+                const existing = users.find(u => u.id === id);
+                if (existing) {
+                    existing.name = name;
+                    existing.login = login;
+                    existing.role = role;
+                    if (pass) {
+                        existing.pass = pass;
+                        existing.isFirstAccess = true;
+                    }
+                }
+            } else {
+                users.push({
+                    id: 'usr_' + Date.now(),
+                    name: name,
+                    login: login,
+                    role: role,
+                    pass: pass,
+                    isFirstAccess: true
+                });
+            }
+
+            saveUsersToFirebase();
+            renderUsersTable();
+            resetUserForm();
+            showToast('Usuário salvo no Firebase!', 'success');
+        }
+
+        function deleteUser(userId) {
+            if (currentRole !== 'admin') return;
+            const u = users.find(usr => usr.id === userId);
+            if (!u) return;
+
+            if (u.login === 'admin') {
+                showToast('Não é possível excluir o administrador principal.', 'error');
+                return;
+            }
+
+            if (confirm(`Remover o usuário ${u.name} (${u.login})?`)) {
+                users = users.filter(usr => usr.id !== userId);
+                saveUsersToFirebase();
+                renderUsersTable();
+                showToast('Usuário removido.', 'info');
+            }
+        }
+
+        function handlePlaquetaInput(input) {
+            let val = input.value.trim().toUpperCase();
+            if (val.length > 0 && !/^\d/.test(val) && !val.startsWith('SEM PATRIMÔNIO')) {
+                input.value = 'SEM PATRIMÔNIO';
+            }
+        }
+
+        function validatePlaqueta(val) {
+            if (!val) return 'SEM PATRIMÔNIO';
+            let clean = String(val).replace(/['"]/g, '').replace(/\D/g, '').trim();
+            if (clean.length === 12) return clean;
+            return 'SEM PATRIMÔNIO';
+        }
+
+        function normalizeHeader(h) {
+            if (!h) return '';
+            return h.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        }
+
+        function parseCSVToGrid(csvText, delimiter) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < csvText.length; i++) {
+                const char = csvText[i];
+                const nextChar = csvText[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === delimiter && !inQuotes) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(currentCell.trim());
+                    if (currentRow.some(cell => cell.length > 0)) rows.push(currentRow);
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell.length > 0 || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(cell => cell.length > 0)) rows.push(currentRow);
+            }
+            return rows;
+        }
+
+        // GERENCIAMENTO DE LOCALIZAÇÕES
+        function renderLocationsUI() {
+            const datalist = document.getElementById('locationsDatalist');
+            datalist.innerHTML = '';
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc;
+                datalist.appendChild(opt);
+            });
+
+            const listContainer = document.getElementById('locationsListContainer');
+            if (listContainer) {
+                listContainer.innerHTML = '';
+                locations.forEach(loc => {
+                    const div = document.createElement('div');
+                    div.className = 'px-3 py-2 flex items-center justify-between text-xs hover:bg-slate-50';
+                    div.innerHTML = `
+                        <span class="font-medium text-slate-800">${escapeHtml(loc)}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="renameLocation('${escapeHtml(loc)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Renomear">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            ${currentRole === 'admin' ? `
+                            <button onclick="deleteLocation('${escapeHtml(loc)}')" class="text-rose-600 hover:text-rose-800 p-1" title="Excluir">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>` : ''}
+                        </div>
+                    `;
+                    listContainer.appendChild(div);
+                });
+            }
+            renderFilterDropdown();
+        }
+
+        function addCustomLocation(e) {
+            e.preventDefault();
+            if (currentRole === 'viewer') return;
+            const input = document.getElementById('newLocationInput');
+            const loc = input.value.trim().toUpperCase();
+            if (loc && !locations.includes(loc)) {
+                locations.push(loc);
+                saveLocationsToFirebase();
+                renderLocationsUI();
+                renderKpis();
+                input.value = '';
+                showToast('Localização adicionada!', 'success');
+            }
+        }
+
+        function renameLocation(oldLoc) {
+            if (currentRole === 'viewer') return;
+            const newLoc = prompt(`Digite o novo nome para a localização "${oldLoc}":`, oldLoc);
+            if (!newLoc) return;
+            const newLocUpper = newLoc.trim().toUpperCase();
+
+            if (!newLocUpper || newLocUpper === oldLoc) return;
+
+            const idx = locations.indexOf(oldLoc);
+            if (idx !== -1) {
+                locations[idx] = newLocUpper;
+            }
+
+            let affectedCount = 0;
+            items.forEach(item => {
+                if ((item.localizacao || '').toUpperCase() === oldLoc.toUpperCase()) {
+                    addHistoryLog(item, 'Renomeação de Localização', item.localizacao, newLocUpper);
+                    item.localizacao = newLocUpper;
+                    affectedCount++;
+                }
+            });
+
+            saveLocationsToFirebase();
+            saveItemsToFirebase();
+            renderLocationsUI();
+            renderTable();
+            renderKpis();
+            showToast(`Localização renomeada. ${affectedCount} item(ns) atualizado(s)!`, 'success');
+        }
+
+        function deleteLocation(loc) {
+            if (currentRole !== 'admin') return;
+            if (confirm(`Remover a localização "${loc}"?`)) {
+                locations = locations.filter(l => l !== loc);
+                saveLocationsToFirebase();
+                renderLocationsUI();
+                renderKpis();
+                showToast('Localização removida!', 'info');
+            }
+        }
+
+        function openLocationModal() {
+            renderLocationsUI();
+            document.getElementById('locationModal').classList.remove('hidden');
+        }
+        function closeLocationModal() { document.getElementById('locationModal').classList.add('hidden'); }
+
+        // REORDENAÇÃO DOS CARDS SUPERIORES
+        function moveLocationCard(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= locations.length) return;
+
+            const temp = locations[index];
+            locations[index] = locations[targetIndex];
+            locations[targetIndex] = temp;
+
+            saveLocationsToFirebase();
+            renderKpis();
+            renderFilterDropdown();
+        }
+
+        // CARDS SUPERIORES
+        function renderKpis() {
+            const container = document.getElementById('kpiContainer');
+            container.innerHTML = '';
+
+            const isViewer = currentRole === 'viewer';
+
+            locations.forEach((loc, index) => {
+                const count = items.filter(i => (i.localizacao || '').toUpperCase() === loc.toUpperCase()).length;
+                const isActive = currentLocalFilter === loc;
+
+                const div = document.createElement('div');
+                div.title = loc;
+                div.className = `bg-white p-1.5 rounded-md border ${isActive ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'} shadow-sm flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md hover:scale-105 transition-all duration-200 min-w-[130px] flex-1 relative group`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between gap-1">
+                        <span onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-[10px] font-bold text-slate-600 truncate flex-1 leading-tight group-hover:text-blue-700" title="${escapeHtml(loc)}">${escapeHtml(loc)}</span>
+                        ${!isViewer ? `
+                        <div class="flex items-center text-[9px] space-x-0.5 opacity-40 group-hover:opacity-100 no-print" onclick="event.stopPropagation()">
+                            <button onclick="moveLocationCard(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para esquerda">◄</button>
+                            <button onclick="moveLocationCard(${index}, 1)" ${index === locations.length - 1 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para direita">►</button>
+                        </div>` : ''}
+                    </div>
+                    <div onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-sm font-bold text-slate-900 mt-0.5">${count}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function filterByLocationCard(loc) {
+            if (currentLocalFilter === loc) {
+                currentLocalFilter = null;
+            } else {
+                currentLocalFilter = loc;
+            }
+            applyFilters();
+        }
+
+        function clearLocalFilter() {
+            currentLocalFilter = null;
+            applyFilters();
+        }
+
+        // SELETOR MULTIPLO DE FILTROS
+        function handleGlobalClick(e) {
+            const container = document.getElementById('filterDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('filterDropdownMenu').classList.add('hidden');
+            }
+        }
+
+        function toggleFilterDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('filterDropdownMenu').classList.toggle('hidden');
+        }
+
+        function renderFilterDropdown() {
+            const container = document.getElementById('filterCheckboxesContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const filterOptions = [
+                { id: 'OPT_NO_PATRIMONY', label: '1. Sem Patrimônio', value: 'OPT_NO_PATRIMONY' },
+                { id: 'OPT_DIE_NO', label: '2. Lista da DIE? = NÃO', value: 'OPT_DIE_NO' },
+                { id: 'OPT_DIE_NO_WITH_PATRIMONY', label: '3. Lista DIE? = NÃO + Possui Plaqueta', value: 'OPT_DIE_NO_WITH_PATRIMONY' },
+                ...locations.map(loc => ({ id: `LOC_${loc}`, label: loc, value: loc, isLoc: true }))
+            ];
+
+            filterOptions.forEach(opt => {
+                const isChecked = selectedFilterOptions.includes(opt.value);
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 text-xs font-medium text-slate-700 cursor-pointer';
+                div.innerHTML = `
+                    <input type="checkbox" id="chk_flt_${escapeHtml(opt.id)}" value="${escapeHtml(opt.value)}" ${isChecked ? 'checked' : ''} onchange="onFilterOptionChange()" class="filter-option-cb rounded border-slate-300 text-slate-800 focus:ring-slate-700">
+                    <label for="chk_flt_${escapeHtml(opt.id)}" class="flex-1 cursor-pointer truncate ${!opt.isLoc ? 'font-bold text-amber-900' : ''}">${escapeHtml(opt.label)}</label>
+                `;
+                container.appendChild(div);
+            });
+
+            updateFilterDropdownLabel();
+        }
+
+        function onFilterOptionChange() {
+            selectedFilterOptions = Array.from(document.querySelectorAll('.filter-option-cb:checked')).map(cb => cb.value);
+            updateFilterDropdownLabel();
+            applyFilters();
+        }
+
+        function toggleAllFilters(checked) {
+            document.querySelectorAll('.filter-option-cb').forEach(cb => cb.checked = checked);
+            onFilterOptionChange();
+        }
+
+        function updateFilterDropdownLabel() {
+            const label = document.getElementById('filterDropdownLabel');
+            if (!label) return;
+            if (selectedFilterOptions.length === 0) {
+                label.textContent = '-- Selecionar Filtros --';
+            } else if (selectedFilterOptions.length === 1) {
+                if (selectedFilterOptions[0] === 'OPT_NO_PATRIMONY') label.textContent = 'Sem Patrimônio';
+                else if (selectedFilterOptions[0] === 'OPT_DIE_NO') label.textContent = 'Lista DIE = NÃO';
+                else if (selectedFilterOptions[0] === 'OPT_DIE_NO_WITH_PATRIMONY') label.textContent = 'DIE = NÃO + Plaqueta';
+                else label.textContent = selectedFilterOptions[0];
+            } else {
+                label.textContent = `${selectedFilterOptions.length} Filtros selecionados`;
+            }
+        }
+
+        function getFilteredItems() {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            let list = items.filter(item => {
+                if (currentLocalFilter && (item.localizacao || '').toUpperCase() !== currentLocalFilter.toUpperCase()) {
+                    return false;
+                }
+
+                if (selectedFilterOptions.length > 0) {
+                    const hasNoPatrimonyRule = selectedFilterOptions.includes('OPT_NO_PATRIMONY');
+                    const hasDieNoRule = selectedFilterOptions.includes('OPT_DIE_NO');
+                    const hasDieNoWithPatrimonyRule = selectedFilterOptions.includes('OPT_DIE_NO_WITH_PATRIMONY');
+                    const selectedLocs = selectedFilterOptions.filter(o => o !== 'OPT_NO_PATRIMONY' && o !== 'OPT_DIE_NO' && o !== 'OPT_DIE_NO_WITH_PATRIMONY');
+
+                    if (hasNoPatrimonyRule && item.plaqueta !== 'SEM PATRIMÔNIO') {
+                        return false;
+                    }
+
+                    if (hasDieNoRule && item.listaDie !== 'NÃO') {
+                        return false;
+                    }
+
+                    if (hasDieNoWithPatrimonyRule && (item.listaDie !== 'NÃO' || item.plaqueta === 'SEM PATRIMÔNIO')) {
+                        return false;
+                    }
+
+                    if (selectedLocs.length > 0 && !selectedLocs.map(l => l.toUpperCase()).includes((item.localizacao || '').toUpperCase())) {
+                        return false;
+                    }
+                }
+
+                if (!search) return true;
+
+                const haystack = [item.plaqueta, item.localizacao, item.descricao, item.listaDie, item.observacao].join(' ').toLowerCase();
+                return haystack.includes(search);
+            });
+
+            if (currentSortColumn) {
+                list.sort((a, b) => {
+                    let valA = a[currentSortColumn] ? String(a[currentSortColumn]).toLowerCase() : '';
+                    let valB = b[currentSortColumn] ? String(b[currentSortColumn]).toLowerCase() : '';
+                    if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            return list;
+        }
+
+        function applyFilters() {
+            const badge = document.getElementById('activeFilterBadge');
+            const activeCount = selectedFilterOptions.length + (currentLocalFilter ? 1 : 0);
+            if (activeCount > 0) {
+                document.getElementById('activeFilterName').textContent = activeCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            renderTable();
+            renderKpis();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            currentLocalFilter = null;
+            selectedFilterOptions = [];
+            document.querySelectorAll('.filter-option-cb').forEach(cb => cb.checked = false);
+            updateFilterDropdownLabel();
+            applyFilters();
+        }
+
+        function sortTableBy(key) {
+            if (currentSortColumn === key) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = key;
+                currentSortDirection = 'asc';
+            }
+            updateSortIcons();
+            renderTable();
+        }
+
+        function updateSortIcons() {
+            ALL_FIELDS.forEach(f => {
+                const icon = document.getElementById(`sort_icon_${f.key}`);
+                if (icon) {
+                    if (f.key === currentSortColumn) {
+                        icon.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
+                        icon.className = 'text-[11px] text-blue-600 font-bold';
+                    } else {
+                        icon.textContent = '↕';
+                        icon.className = 'text-[10px] text-slate-400';
+                    }
+                }
+            });
+        }
+
+        function handleInlineLocationChange(itemId, newLoc, previousLocSelect) {
+            if (currentRole === 'viewer') return;
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            if (item.localizacao === newLoc) return;
+
+            const confirmMsg = `Confirmar a alteração de localização do item:\n\nPlaqueta: ${item.plaqueta}\nDescrição: ${item.descricao}\n\nDe: "${item.localizacao}"\nPara: "${newLoc}"?`;
+            
+            if (confirm(confirmMsg)) {
+                if (!locations.includes(newLoc)) {
+                    locations.push(newLoc);
+                    saveLocationsToFirebase();
+                }
+
+                addHistoryLog(item, 'Edição Inline de Localização', item.localizacao, newLoc);
+                item.localizacao = newLoc;
+                
+                window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${itemId}`), item)
+                    .then(() => showToast('Localização atualizada com sucesso!', 'success'))
+                    .catch(err => {
+                        saveLocalCache();
+                        showToast('Localização atualizada no cache local.', 'info');
+                    });
+
+                renderTable();
+                renderKpis();
+            } else {
+                previousLocSelect.value = item.localizacao;
+            }
+        }
+
+        function renderTable() {
+            const list = getFilteredItems();
+            const tbody = document.getElementById('itemsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            document.getElementById('recordCount').textContent = list.length;
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            const isViewer = currentRole === 'viewer';
+
+            list.forEach(item => {
+                const tr = document.createElement('tr');
+
+                let locCellContent = `<span class="font-medium text-slate-800">${escapeHtml(item.localizacao)}</span>`;
+                if (!isViewer) {
+                    let optionsHtml = locations.map(loc => {
+                        const selected = (loc.toUpperCase() === (item.localizacao || '').toUpperCase()) ? 'selected' : '';
+                        return `<option value="${escapeHtml(loc)}" ${selected}>${escapeHtml(loc)}</option>`;
+                    }).join('');
+
+                    if (!locations.map(l => l.toUpperCase()).includes((item.localizacao || '').toUpperCase())) {
+                        optionsHtml += `<option value="${escapeHtml(item.localizacao)}" selected>${escapeHtml(item.localizacao)}</option>`;
+                    }
+
+                    locCellContent = `
+                        <select onchange="handleInlineLocationChange('${item.id}', this.value, this)" class="bg-slate-50 border border-slate-300 text-slate-800 font-medium text-xs rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-600 transition cursor-pointer max-w-[200px] truncate">
+                            ${optionsHtml}
+                        </select>
+                    `;
+                }
+
+                const listaDieBadge = (item.listaDie === 'SIM')
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">SIM</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">NÃO</span>`;
+
+                tr.innerHTML = `
+                    <td class="text-center sticky left-0 bg-white z-10 border-r border-slate-200">
+                        <div class="flex items-center justify-center gap-1">
+                            ${!isViewer ? `
+                            <button onclick="openItemModal('${item.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="Editar Completo">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>` : ''}
+                            <button onclick="openHistoryModal('${item.id}')" class="text-amber-600 hover:text-amber-800 p-1" title="Histórico de Movimentações">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </button>
+                            ${currentRole === 'admin' ? `
+                            <button onclick="deleteItem('${item.id}')" class="text-rose-600 hover:text-rose-800 p-1" title="Excluir">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>` : ''}
+                        </div>
+                    </td>
+                    <td class="font-mono font-bold text-slate-900">${escapeHtml(item.plaqueta)}</td>
+                    <td>${locCellContent}</td>
+                    <td class="text-slate-800">${escapeHtml(item.descricao)}</td>
+                    <td class="text-center">${listaDieBadge}</td>
+                    <td class="text-slate-500 max-w-xs truncate">${escapeHtml(item.observacao || '-')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openItemModal(id = null) {
+            if (currentRole === 'viewer') return;
+            const form = document.getElementById('itemForm');
+            form.reset();
+
+            if (id) {
+                const item = items.find(i => i.id === id);
+                if (item) {
+                    document.getElementById('modalItemTitle').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Editar Item';
+                    document.getElementById('itemId').value = item.id;
+                    document.getElementById('field_plaqueta').value = item.plaqueta;
+                    document.getElementById('field_localizacao').value = item.localizacao;
+                    document.getElementById('field_descricao').value = item.descricao;
+                    document.getElementById('field_listaDie').value = item.listaDie || 'SIM';
+                    document.getElementById('field_observacao').value = item.observacao || '';
+                }
+            } else {
+                document.getElementById('modalItemTitle').innerHTML = '<i class="fa-solid fa-box"></i> Cadastrar Item';
+                document.getElementById('itemId').value = '';
+                document.getElementById('field_listaDie').value = 'SIM';
+            }
+
+            document.getElementById('itemModal').classList.remove('hidden');
+        }
+
+        function closeItemModal() { document.getElementById('itemModal').classList.add('hidden'); }
+
+        function saveItem(e) {
+            e.preventDefault();
+            if (currentRole === 'viewer') return;
+
+            const id = document.getElementById('itemId').value;
+            const plaquetaRaw = document.getElementById('field_plaqueta').value;
+            const plaqueta = validatePlaqueta(plaquetaRaw);
+            const localizacao = document.getElementById('field_localizacao').value.trim().toUpperCase() || 'NÃO LOCALIZADO';
+            const descricao = document.getElementById('field_descricao').value.trim().toUpperCase();
+            const listaDie = document.getElementById('field_listaDie').value;
+            const observacao = document.getElementById('field_observacao').value.trim();
+
+            if (plaqueta !== 'SEM PATRIMÔNIO') {
+                const duplicate = items.find(i => i.plaqueta === plaqueta && i.id !== id);
+                if (duplicate) {
+                    const warnMsg = `Atenção: A plaqueta ${plaqueta} já consta cadastrada no sistema!\n\nItem existente:\n- Descrição: ${duplicate.descricao}\n- Localização Atual: ${duplicate.localizacao}\n\nDeseja continuar e salvar assim mesmo?`;
+                    if (!confirm(warnMsg)) {
+                        return;
+                    }
+                }
+            }
+
+            const targetId = id || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+            if (!locations.includes(localizacao)) {
+                locations.push(localizacao);
+                saveLocationsToFirebase();
+            }
+
+            let dataToSave;
+            const existing = items.find(i => i.id === targetId);
+            if (existing) {
+                if (existing.localizacao !== localizacao) {
+                    addHistoryLog(existing, 'Edição no Formulário', existing.localizacao, localizacao);
+                }
+                existing.plaqueta = plaqueta;
+                existing.localizacao = localizacao;
+                existing.descricao = descricao;
+                existing.listaDie = listaDie;
+                existing.observacao = observacao;
+                dataToSave = existing;
+            } else {
+                dataToSave = { id: targetId, plaqueta, localizacao, descricao, listaDie, observacao, history: [] };
+                addHistoryLog(dataToSave, 'Cadastro Inicial', '-', localizacao);
+                items.push(dataToSave);
+            }
+
+            window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${targetId}`), dataToSave)
+                .then(() => {
+                    showToast('Item salvo no Firebase!', 'success');
+                })
+                .catch(err => {
+                    saveLocalCache();
+                    showToast('Item salvo no cache local.', 'info');
+                });
+
+            closeItemModal();
+            renderTable();
+            renderKpis();
+        }
+
+        function deleteItem(id) {
+            if (currentRole !== 'admin') return;
+            if (confirm('Excluir este registro de patrimônio?')) {
+                items = items.filter(i => i.id !== id);
+                window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`))
+                    .then(() => showToast('Item excluído do Firebase.', 'info'))
+                    .catch(err => showToast('Item excluído do cache local.', 'info'));
+
+                saveLocalCache();
+                renderTable();
+                renderKpis();
+            }
+        }
+
+        function openBulkLocationModal() {
+            if (currentRole === 'viewer') return;
+            const currentList = getFilteredItems();
+            if (currentList.length === 0) {
+                showToast('Nenhum item filtrado para alterar em massa.', 'warning');
+                return;
+            }
+            document.getElementById('bulkItemsCount').textContent = currentList.length;
+            document.getElementById('bulk_localizacao').value = '';
+            document.getElementById('bulkLocationModal').classList.remove('hidden');
+        }
+
+        function closeBulkLocationModal() {
+            document.getElementById('bulkLocationModal').classList.add('hidden');
+        }
+
+        function executeBulkLocationUpdate() {
+            if (currentRole === 'viewer') return;
+            const newLoc = document.getElementById('bulk_localizacao').value.trim().toUpperCase();
+            if (!newLoc) {
+                showToast('Informe a nova localização!', 'warning');
+                return;
+            }
+
+            const currentList = getFilteredItems();
+            if (currentList.length === 0) return;
+
+            if (confirm(`Tem certeza que deseja alterar a localização de ${currentList.length} item(ns) para "${newLoc}"?`)) {
+                const updates = {};
+                currentList.forEach(item => {
+                    if (item.localizacao !== newLoc) {
+                        addHistoryLog(item, 'Alteração em Massa', item.localizacao, newLoc);
+                        item.localizacao = newLoc;
+                        updates[item.id] = item;
+                    }
+                });
+
+                if (!locations.includes(newLoc)) {
+                    locations.push(newLoc);
+                    saveLocationsToFirebase();
+                }
+
+                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                    .then(() => showToast(`Localização de ${currentList.length} itens alterada!`, 'success'))
+                    .catch(err => showToast(`Localização atualizada localmente.`, 'info'));
+
+                saveLocalCache();
+                closeBulkLocationModal();
+                renderTable();
+                renderKpis();
+            }
+        }
+
+        function openImportModal() { document.getElementById('importModal').classList.remove('hidden'); }
+        function closeImportModal() { document.getElementById('importModal').classList.add('hidden'); }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                processCsvData(evt.target.result);
+                closeImportModal();
+                e.target.value = '';
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function importFromText() {
+            const text = document.getElementById('csvPasteInput').value.trim();
+            if (text) {
+                processCsvData(text);
+                closeImportModal();
+                document.getElementById('csvPasteInput').value = '';
+            }
+        }
+
+        function processCsvData(text) {
+            if (!text || !text.trim()) return;
+            text = text.replace(/^\uFEFF/, '');
+
+            let delimiter = ',';
+            const sample = text.substring(0, 1000);
+            const semicolons = (sample.match(/;/g) || []).length;
+            const commas = (sample.match(/,/g) || []).length;
+            const tabs = (sample.match(/\t/g) || []).length;
+
+            if (semicolons > commas && semicolons > tabs) delimiter = ';';
+            else if (tabs > commas && tabs > semicolons) delimiter = '\t';
+
+            const rawGrid = parseCSVToGrid(text, delimiter);
+            if (rawGrid.length === 0) return;
+
+            let headerIndex = 0;
+            let normHeaders = rawGrid[0].map(c => normalizeHeader(c));
+
+            let hasPlaqueta = normHeaders.some(h => h.includes('PLAQUETA'));
+            if (!hasPlaqueta && rawGrid.length > 1) {
+                for (let i = 0; i < Math.min(rawGrid.length, 5); i++) {
+                    const candidate = rawGrid[i].map(c => normalizeHeader(c));
+                    if (candidate.some(h => h.includes('PLAQUETA'))) {
+                        headerIndex = i;
+                        normHeaders = candidate;
+                        hasPlaqueta = true;
+                        break;
+                    }
+                }
+            }
+
+            const plaqIdx = normHeaders.findIndex(h => h.includes('PLAQUETA'));
+            const locIdx = normHeaders.findIndex(h => h.includes('LOCALIZACAO') || h.includes('LOCAL'));
+            const descIdx = normHeaders.findIndex(h => h.includes('DESCRICAO') || h.includes('ITEM'));
+            const obsIdx = normHeaders.findIndex(h => h.includes('OBSERVACAO') || h.includes('OBS'));
+
+            const startRow = hasPlaqueta ? headerIndex + 1 : 0;
+            let count = 0;
+            const updates = {};
+
+            for (let i = startRow; i < rawGrid.length; i++) {
+                const row = rawGrid[i];
+                if (!row || row.length === 0 || !row.some(c => c.length > 0)) continue;
+
+                const rawPlaq = (plaqIdx >= 0 && plaqIdx < row.length) ? row[plaqIdx] : '';
+                const plaqueta = validatePlaqueta(rawPlaq);
+
+                const rawLoc = (locIdx >= 0 && locIdx < row.length) ? row[locIdx].trim().toUpperCase() : '';
+                const localizacao = rawLoc || 'NÃO LOCALIZADO';
+
+                const rawDesc = (descIdx >= 0 && descIdx < row.length) ? row[descIdx].trim().toUpperCase() : '';
+                const descricao = rawDesc || 'ITEM IMPORTADO';
+
+                const observacao = (obsIdx >= 0 && obsIdx < row.length) ? row[obsIdx].trim() : '';
+
+                const itemId = 'item_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4);
+                
+                const newItem = { id: itemId, plaqueta, localizacao, descricao, listaDie: 'SIM', observacao, history: [] };
+                addHistoryLog(newItem, 'Importação CSV', '-', localizacao);
+                items.push(newItem);
+                updates[itemId] = newItem;
+                count++;
+
+                if (localizacao && !locations.includes(localizacao)) {
+                    locations.push(localizacao);
+                }
+            }
+
+            saveLocationsToFirebase();
+            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                .then(() => showToast(`${count} itens importados no Firebase (Lista da DIE = SIM)!`, 'success'))
+                .catch(err => showToast(`${count} itens importados no cache local.`, 'info'));
+
+            saveLocalCache();
+            renderTable();
+            renderKpis();
+        }
+
+        function openCompareModal() { document.getElementById('compareModal').classList.remove('hidden'); }
+        function closeCompareModal() { document.getElementById('compareModal').classList.add('hidden'); }
+
+        function handleCompareUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                executeCompareCSV(evt.target.result);
+                closeCompareModal();
+                e.target.value = '';
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function executeCompareCSV(csvText) {
+            if (!csvText || !csvText.trim()) return;
+            csvText = csvText.replace(/^\uFEFF/, '');
+
+            let delimiter = ',';
+            const sample = csvText.substring(0, 1000);
+            const semicolons = (sample.match(/;/g) || []).length;
+            const commas = (sample.match(/,/g) || []).length;
+            const tabs = (sample.match(/\t/g) || []).length;
+
+            if (semicolons > commas && semicolons > tabs) delimiter = ';';
+            else if (tabs > commas && tabs > semicolons) delimiter = '\t';
+
+            const rawGrid = parseCSVToGrid(csvText, delimiter);
+            if (rawGrid.length === 0) return;
+
+            let headerIndex = 0;
+            let normHeaders = rawGrid[0].map(c => normalizeHeader(c));
+
+            let hasPlaqueta = normHeaders.some(h => h.includes('PLAQUETA'));
+            if (!hasPlaqueta && rawGrid.length > 1) {
+                for (let i = 0; i < Math.min(rawGrid.length, 5); i++) {
+                    const candidate = rawGrid[i].map(c => normalizeHeader(c));
+                    if (candidate.some(h => h.includes('PLAQUETA'))) {
+                        headerIndex = i;
+                        normHeaders = candidate;
+                        hasPlaqueta = true;
+                        break;
+                    }
+                }
+            }
+
+            const plaqIdx = normHeaders.findIndex(h => h.includes('PLAQUETA'));
+            const locIdx = normHeaders.findIndex(h => h.includes('LOCALIZACAO') || h.includes('LOCAL'));
+            const descIdx = normHeaders.findIndex(h => h.includes('DESCRICAO') || h.includes('ITEM'));
+            const obsIdx = normHeaders.findIndex(h => h.includes('OBSERVACAO') || h.includes('OBS'));
+
+            const startRow = hasPlaqueta ? headerIndex + 1 : 0;
+            let updatedCount = 0;
+            let createdCount = 0;
+            const updates = {};
+
+            for (let i = startRow; i < rawGrid.length; i++) {
+                const row = rawGrid[i];
+                if (!row || row.length === 0 || !row.some(c => c.length > 0)) continue;
+
+                const rawPlaq = (plaqIdx >= 0 && plaqIdx < row.length) ? row[plaqIdx] : '';
+                const cleanPlaq = String(rawPlaq).replace(/['"]/g, '').replace(/\D/g, '').trim();
+
+                const rawLoc = (locIdx >= 0 && locIdx < row.length) ? row[locIdx].trim().toUpperCase() : '';
+                const localizacao = rawLoc || 'NÃO LOCALIZADO';
+
+                const rawDesc = (descIdx >= 0 && descIdx < row.length) ? row[descIdx].trim().toUpperCase() : '';
+                const descricao = rawDesc || 'ITEM COMPARADO';
+
+                const observacao = (obsIdx >= 0 && obsIdx < row.length) ? row[obsIdx].trim() : '';
+
+                const existing = (cleanPlaq.length === 12) 
+                    ? items.find(item => item.plaqueta === cleanPlaq) 
+                    : null;
+
+                if (existing) {
+                    if (existing.localizacao !== localizacao) {
+                        addHistoryLog(existing, 'Comparação CSV', existing.localizacao, localizacao);
+                        existing.localizacao = localizacao;
+                    }
+                    if (observacao) existing.observacao = observacao;
+                    updates[existing.id] = existing;
+                    updatedCount++;
+                } else {
+                    const newId = 'item_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4);
+                    const finalPlaqueta = (cleanPlaq.length === 12) ? cleanPlaq : 'SEM PATRIMÔNIO';
+
+                    const newItem = {
+                        id: newId,
+                        plaqueta: finalPlaqueta,
+                        localizacao: localizacao,
+                        descricao: descricao,
+                        listaDie: 'NÃO',
+                        observacao: observacao,
+                        history: []
+                    };
+                    addHistoryLog(newItem, 'Comparação CSV (Novo Registro)', '-', localizacao);
+                    items.push(newItem);
+                    updates[newId] = newItem;
+                    createdCount++;
+                }
+
+                if (localizacao && !locations.includes(localizacao)) {
+                    locations.push(localizacao);
+                }
+            }
+
+            saveLocationsToFirebase();
+            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                .then(() => showToast(`Comparação no Firebase: ${updatedCount} atualizados, ${createdCount} criados.`, 'success'))
+                .catch(err => showToast(`Comparação concluída no cache local.`, 'info'));
+
+            saveLocalCache();
+            renderTable();
+            renderKpis();
+        }
+
+        function executeExportCSV() {
+            const list = getFilteredItems();
+            if (list.length === 0) { showToast('Nenhum item para exportar.', 'warning'); return; }
+
+            let csv = '\uFEFFPLAQUETA;LOCALIZAÇÃO;DESCRIÇÃO DO ITEM;LISTA DA DIE?;OBSERVAÇÃO\n';
+            list.forEach(i => {
+                csv += `"${i.plaqueta}";"${i.localizacao}";"${i.descricao}";"${i.listaDie || 'SIM'}";"${i.observacao || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `patrimonio_delegacia_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        // ETIQUETAS BARCODE
+        function openBarcodeModal() {
+            const list = getFilteredItems();
+            const patrimonyItems = list.filter(item => item.plaqueta !== 'SEM PATRIMÔNIO');
+
+            if (patrimonyItems.length === 0) {
+                showToast('Nenhum item com patrimônio (plaqueta) visível no filtro para gerar código de barras.', 'warning');
+                return;
+            }
+
+            document.getElementById('barcodeItemsCount').textContent = patrimonyItems.length;
+            const previewContainer = document.getElementById('barcodePreviewGrid');
+            previewContainer.innerHTML = '';
+
+            patrimonyItems.forEach((item, index) => {
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'barcode-label border border-slate-300 shadow-sm rounded bg-white text-center';
+                
+                const svgId = `barcode_svg_${index}`;
+                labelDiv.innerHTML = `
+                    <svg id="${svgId}"></svg>
+                    <div class="text-[9px] font-mono font-bold text-slate-800 tracking-tight leading-none mt-0.5 truncate max-w-full">${escapeHtml(item.plaqueta)}</div>
+                `;
+                previewContainer.appendChild(labelDiv);
+
+                setTimeout(() => {
+                    try {
+                        JsBarcode(`#${svgId}`, item.plaqueta, {
+                            format: "CODE128",
+                            displayValue: false,
+                            margin: 0,
+                            height: 32,
+                            width: 1.2
+                        });
+                    } catch(err) {
+                        console.error('Erro ao gerar código de barras:', err);
+                    }
+                }, 50);
+            });
+
+            document.getElementById('barcodeModal').classList.remove('hidden');
+        }
+
+        function closeBarcodeModal() {
+            document.getElementById('barcodeModal').classList.add('hidden');
+        }
+
+        function triggerBarcodePrint() {
+            const list = getFilteredItems();
+            const patrimonyItems = list.filter(item => item.plaqueta !== 'SEM PATRIMÔNIO');
+
+            if (patrimonyItems.length === 0) return;
+
+            const printContainer = document.getElementById('barcodePrintArea');
+            printContainer.innerHTML = '';
+
+            patrimonyItems.forEach((item, index) => {
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'barcode-label';
+                const svgId = `print_svg_${index}`;
+
+                labelDiv.innerHTML = `
+                    <svg id="${svgId}"></svg>
+                    <div class="text-[9px] font-mono font-bold text-black tracking-tight leading-none mt-0.5 truncate max-w-full">${escapeHtml(item.plaqueta)}</div>
+                `;
+                printContainer.appendChild(labelDiv);
+
+                setTimeout(() => {
+                    try {
+                        JsBarcode(`#${svgId}`, item.plaqueta, {
+                            format: "CODE128",
+                            displayValue: false,
+                            margin: 0,
+                            height: 35,
+                            width: 1.2
+                        });
+                    } catch(err) {}
+                }, 20);
+            });
+
+            closeBarcodeModal();
+            document.body.classList.add('printing-barcodes');
+            setTimeout(() => {
+                window.print();
+                document.body.classList.remove('printing-barcodes');
+            }, 300);
+        }
+
+        function openPrintModal() {
+            const container = document.getElementById('printColumnsContainer');
+            container.innerHTML = '';
+
+            ALL_FIELDS.forEach(col => {
+                const isChecked = DEFAULT_PRINT_KEYS.includes(col.key);
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <input type="checkbox" id="prt_col_${col.key}" value="${col.key}" ${isChecked ? 'checked' : ''} class="print-col-cb rounded border-slate-300 text-blue-600">
+                    <label for="prt_col_${col.key}" class="cursor-pointer text-slate-700 font-medium">${col.label}</label>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('printModal').classList.remove('hidden');
+        }
+
+        function closePrintModal() { document.getElementById('printModal').classList.add('hidden'); }
+
+        function triggerPrintProcess() {
+            const selectedKeys = Array.from(document.querySelectorAll('.print-col-cb:checked')).map(cb => cb.value);
+            if (selectedKeys.length === 0) { showToast('Selecione pelo menos uma coluna.', 'warning'); return; }
+
+            const list = getFilteredItems();
+            const head = document.getElementById('printTableHead');
+            const body = document.getElementById('printTableBody');
+            document.getElementById('printDate').textContent = new Date().toLocaleString('pt-BR');
+
+            let headHtml = '<tr>';
+            ALL_FIELDS.filter(f => selectedKeys.includes(f.key)).forEach(f => { headHtml += `<th>${f.label}</th>`; });
+            headHtml += '</tr>';
+            head.innerHTML = headHtml;
+
+            let bodyHtml = '';
+            list.forEach(i => {
+                bodyHtml += '<tr>';
+                ALL_FIELDS.filter(f => selectedKeys.includes(f.key)).forEach(f => {
+                    let val = i[f.key] || '-';
+                    if (f.key === 'listaDie') {
+                        val = (i.listaDie === 'SIM') ? 'SIM' : 'NÃO';
+                    }
+                    bodyHtml += `<td>${escapeHtml(val)}</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+            body.innerHTML = bodyHtml;
+
+            closePrintModal();
+            document.body.classList.remove('printing-barcodes');
+            setTimeout(() => { window.print(); }, 300);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            let colors = 'bg-slate-900 text-white border-slate-700';
+            if (type === 'success') colors = 'bg-emerald-900 text-emerald-100 border-emerald-700';
+            if (type === 'error') colors = 'bg-rose-900 text-rose-100 border-rose-700';
+            if (type === 'warning') colors = 'bg-amber-900 text-amber-100 border-amber-700';
+
+            toast.className = `p-3 rounded-lg shadow-lg border text-xs font-medium transition transform duration-300 pointer-events-auto max-w-sm ${colors}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+    </script>
+</body>
+</html>
