@@ -80,43 +80,30 @@
         }
     </style>
 
-    <!-- FIREBASE SDK MODULAR (ALTERAÇÃO 1 APLICADA) -->
+    <!-- FIREBASE SDK MODULAR -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
-                authDomain: "patrimonio8-34c99.firebaseapp.com",
-                databaseURL: "https://patrimonio8-34c99-default-rtdb.firebaseio.com",
-                projectId: "patrimonio8-34c99",
-                storageBucket: "patrimonio8-34c99.firebasestorage.app",
-                messagingSenderId: "947700116966",
-                appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
-            };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
+            authDomain: "patrimonio8-34c99.firebaseapp.com",
+            databaseURL: "https://patrimonio8-34c99-default-rtdb.firebaseio.com",
+            projectId: "patrimonio8-34c99",
+            storageBucket: "patrimonio8-34c99.firebasestorage.app",
+            messagingSenderId: "947700116966",
+            appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
+        };
 
-            const app = initializeApp(firebaseConfig);
-            const db = getDatabase(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-            window.fbDB = db;
-            window.fbRef = ref;
-            window.fbSet = set;
-            window.fbUpdate = update;
-            window.fbRemove = remove;
-            window.fbOnValue = onValue;
-            window.isFirebaseActive = true;
-
-            // Se o DOM já carregou quando o módulo terminar, inicia a conexão do Firebase imediatamente
-            if (document.readyState === "complete" || document.readyState === "interactive") {
-                if (typeof window.startApp === 'function') {
-                    window.startApp();
-                }
-            }
-        } catch (e) {
-            console.warn("Falha na inicialização do Firebase. Ativando Modo Teste Local.", e);
-            window.isFirebaseActive = false;
-        }
+        window.fbDB = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbUpdate = update;
+        window.fbRemove = remove;
+        window.fbOnValue = onValue;
     </script>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-slate-700 selection:text-white" onclick="handleGlobalClick(event)">
@@ -179,12 +166,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2.5">
                     <i class="fa-solid fa-boxes-packing text-amber-500 text-2xl"></i>
-                    <!-- INDICADOR MODO TESTE (ESQUERDA DO NOME DO PROGRAMA) -->
-                    <span id="testModeBadge" class="hidden px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[10px] tracking-wider rounded uppercase shadow-sm border border-amber-300">
-                        MODO TESTE - DADOS LOCAL
-                    </span>
                     <div class="flex flex-col justify-center">
                         <span class="font-bold text-base leading-tight tracking-wide text-white">Gestão de Patrimônio</span>
                         <span class="text-[10px] text-slate-400 font-medium leading-none">Delegacia de Polícia</span>
@@ -682,7 +665,7 @@
     <!-- Notification Toasts -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
 
-    <!-- SCRIPT PRINCIPAL (ALTERAÇÃO 2 APLICADA) -->
+    <!-- SCRIPT PRINCIPAL -->
     <script>
         // Usuários Padrão Iniciais
         const DEFAULT_USERS = [
@@ -723,33 +706,10 @@
         let selectedFilterOptions = [];
         let currentSortColumn = null;
         let currentSortDirection = 'asc';
-        let isTestMode = false;
-        let isAppStarted = false;
 
         window.onload = function() {
-            // Dá um pequeno tempo (300ms) para o script module do Firebase carregar antes de decidir pelo Modo Teste
-            setTimeout(() => {
-                window.startApp();
-            }, 300);
+            initFirebaseListeners();
         };
-
-        window.startApp = function() {
-            if (isAppStarted) return;
-            isAppStarted = true;
-
-            if (window.isFirebaseActive) {
-                initFirebaseListeners();
-            } else {
-                enableTestMode();
-            }
-        };
-
-        function enableTestMode() {
-            isTestMode = true;
-            document.getElementById('testModeBadge').classList.remove('hidden');
-            loadLocalCache();
-            checkSessionLogin();
-        }
 
         // INTEGRAÇÃO REALTIME DATABASE COM FIREBASE
         function initFirebaseListeners() {
@@ -793,8 +753,9 @@
         }
 
         function handleDbError(err) {
-            console.warn('Operando em modo local devido a indisponibilidade do Firebase:', err);
-            enableTestMode();
+            console.warn('Operando com dados locais salvos em cache devido à desconexão com o Firebase:', err);
+            loadLocalCache();
+            checkSessionLogin();
         }
 
         function loadLocalCache() {
@@ -834,7 +795,6 @@
 
         function saveItemsToFirebase() {
             saveLocalCache();
-            if (isTestMode) return;
             const updates = {};
             items.forEach(item => { updates[item.id] = item; });
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
@@ -843,14 +803,12 @@
 
         function saveLocationsToFirebase() {
             saveLocalCache();
-            if (isTestMode) return;
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_locais'), locations)
                 .catch(err => console.error('Erro ao salvar localizações no Firebase:', err));
         }
 
         function saveUsersToFirebase() {
             saveLocalCache();
-            if (isTestMode) return;
             const usersObj = {};
             users.forEach(u => { usersObj[u.id] = u; });
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_usuarios'), usersObj)
@@ -873,15 +831,15 @@
 
         function clearAllData() {
             if (currentRole !== 'admin') return;
-            if (confirm('Tem certeza que deseja apagar todos os registros patrimoniais?')) {
+            if (confirm('Tem certeza que deseja apagar todos os registros patrimoniais no Firebase?')) {
                 items = [];
-                if (!isTestMode) {
-                    window.fbRemove(window.fbRef(window.fbDB, 'patrimonio_itens'));
-                }
-                saveLocalCache();
-                renderTable();
-                renderKpis();
-                showToast('Banco de itens zerado com sucesso.', 'info');
+                window.fbRemove(window.fbRef(window.fbDB, 'patrimonio_itens'))
+                    .then(() => {
+                        saveLocalCache();
+                        renderTable();
+                        renderKpis();
+                        showToast('Banco de itens zerado com sucesso.', 'info');
+                    });
             }
         }
 
@@ -1097,7 +1055,7 @@
             saveUsersToFirebase();
             renderUsersTable();
             resetUserForm();
-            showToast(isTestMode ? 'Usuário salvo localmente!' : 'Usuário salvo no Firebase!', 'success');
+            showToast('Usuário salvo no Firebase!', 'success');
         }
 
         function deleteUser(userId) {
@@ -1505,11 +1463,12 @@
                 addHistoryLog(item, 'Edição Inline de Localização', item.localizacao, newLoc);
                 item.localizacao = newLoc;
                 
-                if (!isTestMode) {
-                    window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${itemId}`), item);
-                }
-                saveLocalCache();
-                showToast('Localização atualizada com sucesso!', 'success');
+                window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${itemId}`), item)
+                    .then(() => showToast('Localização atualizada com sucesso!', 'success'))
+                    .catch(err => {
+                        saveLocalCache();
+                        showToast('Localização atualizada no cache local.', 'info');
+                    });
 
                 renderTable();
                 renderKpis();
@@ -1659,8 +1618,14 @@
                 items.push(dataToSave);
             }
 
-            saveItemsToFirebase();
-            showToast(isTestMode ? 'Item salvo localmente!' : 'Item salvo no Firebase!', 'success');
+            window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${targetId}`), dataToSave)
+                .then(() => {
+                    showToast('Item salvo no Firebase!', 'success');
+                })
+                .catch(err => {
+                    saveLocalCache();
+                    showToast('Item salvo no cache local.', 'info');
+                });
 
             closeItemModal();
             renderTable();
@@ -1671,13 +1636,13 @@
             if (currentRole !== 'admin') return;
             if (confirm('Excluir este registro de patrimônio?')) {
                 items = items.filter(i => i.id !== id);
-                if (!isTestMode) {
-                    window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`));
-                }
+                window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`))
+                    .then(() => showToast('Item excluído do Firebase.', 'info'))
+                    .catch(err => showToast('Item excluído do cache local.', 'info'));
+
                 saveLocalCache();
                 renderTable();
                 renderKpis();
-                showToast('Item excluído.', 'info');
             }
         }
 
@@ -1723,12 +1688,11 @@
                     saveLocationsToFirebase();
                 }
 
-                if (!isTestMode) {
-                    window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
-                }
-                saveLocalCache();
-                showToast(`Localização de ${currentList.length} itens alterada!`, 'success');
+                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                    .then(() => showToast(`Localização de ${currentList.length} itens alterada!`, 'success'))
+                    .catch(err => showToast(`Localização atualizada localmente.`, 'info'));
 
+                saveLocalCache();
                 closeBulkLocationModal();
                 renderTable();
                 renderKpis();
@@ -1872,9 +1836,7 @@
                 });
 
                 saveLocationsToFirebase();
-                if (!isTestMode) {
-                    window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
-                }
+                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
                 saveLocalCache();
                 showToast(`${itemsToAdd.length} novo(s) item(ns) adicionado(s) com todas as informações.`, 'success');
             }
@@ -1915,13 +1877,13 @@
             });
 
             saveLocationsToFirebase();
-            if (!isTestMode) {
-                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
-            }
+            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                .then(() => showToast(`${count} itens importados no Firebase (Lista da DIE = SIM)!`, 'success'))
+                .catch(() => showToast(`${count} itens importados no cache local.`, 'info'));
+
             saveLocalCache();
             renderTable();
             renderKpis();
-            showToast(`${count} itens importados ${isTestMode ? 'localmente' : 'no Firebase'}!`, 'success');
         }
 
         function confirmAndDeleteItems(itemsToDelete) {
@@ -1934,11 +1896,9 @@
                 const idsToRemove = new Set(itemsToDelete.map(i => i.id));
                 items = items.filter(i => !idsToRemove.has(i.id));
 
-                if (!isTestMode) {
-                    idsToRemove.forEach(id => {
-                        window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`));
-                    });
-                }
+                idsToRemove.forEach(id => {
+                    window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`));
+                });
 
                 saveLocalCache();
                 renderTable();
@@ -2074,12 +2034,11 @@
             }
 
             saveLocationsToFirebase();
-            if (!isTestMode) {
-                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
-            }
-            saveLocalCache();
-            showToast(`Comparação concluída: ${updatedCount} atualizados, ${createdCount} criados.`, 'success');
+            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
+                .then(() => showToast(`Comparação no Firebase: ${updatedCount} atualizados, ${createdCount} criados.`, 'success'))
+                .catch(err => showToast(`Comparação concluída no cache local.`, 'info'));
 
+            saveLocalCache();
             renderTable();
             renderKpis();
         }
