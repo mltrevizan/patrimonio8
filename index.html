@@ -682,10 +682,10 @@
             { id: 'usr_view', name: 'Visualizador', login: 'visu', pass: 'visu123', role: 'viewer', isFirstAccess: false }
         ];
 
-        // Lista de Localizações Padrão
+        // Lista de Localizações Padrão (SALA DO DELEGADO DIEGO INCLUÍDA)
         const DEFAULT_LOCATIONS = [
             'PLANTÃO GERAL', 'SALA DO DELEGADO-CHEFE', 'SALA SUPERINTENDÊNCIA', 'SALA DO DELEGADO GILSON',
-            'SALA DELEGADO JOSÉ JÚLIO', 'COZINHA', 'CORREDOR DAS SALAS DOS DELEGADOS', 'RECEPÇÃO',
+            'SALA DELEGADO JOSÉ JÚLIO', 'SALA DO DELEGADO DIEGO', 'COZINHA', 'CORREDOR DAS SALAS DOS DELEGADOS', 'RECEPÇÃO',
             'SALA TECIP', 'CARTÓRIO DISTRIBUIDOR', 'CARTÓRIO 01', 'CARTÓRIO 02', 'CARTÓRIO 03',
             'CARTÓRIO 04', 'CARTÓRIO 05', 'CARTÓRIO 06', 'CARTÓRIO 07', 'SALA DA INTELIGÊNCIA',
             'SALA DA FURTOS', 'SALA DO GDE', 'SALA PSICÓLOGA', 'CARTÓRIO CHEFE',
@@ -1236,12 +1236,11 @@
         }
         function closeLocationModal() { document.getElementById('locationModal').classList.add('hidden'); }
 
-        // CARDS SUPERIORES (COM DRAG AND DROP E BOTÃO ENGRENAGEM PARA ADMIN)
+        // CARDS SUPERIORES (COM DRAG AND DROP)
         function renderKpis() {
             const container = document.getElementById('kpiContainer');
             container.innerHTML = '';
 
-            const isAdmin = currentRole === 'admin';
             const isViewer = currentRole === 'viewer';
 
             locations.forEach((loc, index) => {
@@ -1261,17 +1260,6 @@
                 `;
                 container.appendChild(div);
             });
-
-            // BOTÃO ENGRENAGEM NO FINAL DOS CARDS (APENAS ADMINISTRADOR)
-            if (isAdmin) {
-                const gearBtn = document.createElement('button');
-                gearBtn.type = 'button';
-                gearBtn.onclick = openLocationModal;
-                gearBtn.title = 'Gerenciar e Reordenar Localizações';
-                gearBtn.className = 'bg-slate-800 hover:bg-slate-700 text-amber-400 p-1.5 rounded-md border border-slate-700 shadow-sm flex items-center justify-center transition hover:scale-105 h-auto min-w-[36px] flex-shrink-0 self-stretch';
-                gearBtn.innerHTML = `<i class="fa-solid fa-gear text-sm"></i>`;
-                container.appendChild(gearBtn);
-            }
 
             // HABILITA O DRAG AND DROP (SORTABLEJS)
             if (sortableInstance) {
