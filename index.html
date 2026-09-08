@@ -85,25 +85,31 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
-            authDomain: "patrimonio8-34c99.firebaseapp.com",
-            databaseURL: "https://patrimonio8-34c99-default-rtdb.firebaseio.com",
-            projectId: "patrimonio8-34c99",
-            storageBucket: "patrimonio8-34c99.firebasestorage.app",
-            messagingSenderId: "947700116966",
-            appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
-        };
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDRhJRpjiZEr7aRpyUx3LQz777WdoAvr_g",
+                authDomain: "patrimonio8-34c99.firebaseapp.com",
+                databaseURL: "https://patrimonio8-34c99-default-rtdb.firebaseio.com",
+                projectId: "patrimonio8-34c99",
+                storageBucket: "patrimonio8-34c99.firebasestorage.app",
+                messagingSenderId: "947700116966",
+                appId: "1:947700116966:web:611a81cdb2a16e3d1d3a27"
+            };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
 
-        window.fbDB = db;
-        window.fbRef = ref;
-        window.fbSet = set;
-        window.fbUpdate = update;
-        window.fbRemove = remove;
-        window.fbOnValue = onValue;
+            window.fbDB = db;
+            window.fbRef = ref;
+            window.fbSet = set;
+            window.fbUpdate = update;
+            window.fbRemove = remove;
+            window.fbOnValue = onValue;
+            window.isFirebaseActive = true;
+        } catch (e) {
+            console.warn("Falha na inicialização do Firebase. Ativando Modo Teste Local.", e);
+            window.isFirebaseActive = false;
+        }
     </script>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-slate-700 selection:text-white" onclick="handleGlobalClick(event)">
@@ -166,8 +172,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <div class="flex items-center space-x-2.5">
+                <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-boxes-packing text-amber-500 text-2xl"></i>
+                    <!-- INDICADOR MODO TESTE (ESQUERDA DO NOME DO PROGRAMA) -->
+                    <span id="testModeBadge" class="hidden px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[10px] tracking-wider rounded uppercase shadow-sm border border-amber-300">
+                        MODO TESTE - DADOS LOCAL
+                    </span>
                     <div class="flex flex-col justify-center">
                         <span class="font-bold text-base leading-tight tracking-wide text-white">Gestão de Patrimônio</span>
                         <span class="text-[10px] text-slate-400 font-medium leading-none">Delegacia de Polícia</span>
@@ -228,7 +238,7 @@
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-5">
         
-        <!-- CARDS DE LOCALIZAÇÃO -->
+        <!-- CARDS DE LOCALIZAÇÃO (10 POR LINHA) -->
         <div id="kpiContainer" class="flex flex-wrap gap-1.5 no-print items-stretch max-h-64 overflow-y-auto p-2 pb-3 bg-slate-200/50 rounded-xl border border-slate-200"></div>
 
         <!-- BARRA DE FILTROS E BUSCA -->
@@ -681,7 +691,9 @@
             'CARTÓRIO 04', 'CARTÓRIO 05', 'CARTÓRIO 06', 'CARTÓRIO 07', 'SALA DA INTELIGÊNCIA',
             'SALA DA FURTOS', 'SALA DO GDE', 'SALA PSICÓLOGA', 'CARTÓRIO CHEFE',
             'CENTRAL DE TRIAGEM (POLICIA MILITAR)', 'CENTRAL DE FLAGRANTES', 'BOLETIM DE OCORRÊNCIA',
-            'CORREDOR FUNDOS', 'CORRÓ', 'NÃO LOCALIZADO'
+            'CORREDOR FUNDOS', 'CORRÓ', 'DM 01', 'DM 02', 'DM 03', 'DM 04', 'DM 05',
+            'VEÍCULO - EM USO', 'VEÍCULO - BAIXADO', 'DEPPEN', 'IDENTIFICAÇÃO', 'QUARTO FUNDOS',
+            'NÃO LOCALIZADO'
         ];
 
         const ALL_FIELDS = [
@@ -703,10 +715,23 @@
         let selectedFilterOptions = [];
         let currentSortColumn = null;
         let currentSortDirection = 'asc';
+        let isTestMode = false;
 
         window.onload = function() {
-            initFirebaseListeners();
+            // VERIFICAÇÃO AUTOMÁTICA DO MODO TESTE
+            if (window.isFirebaseActive) {
+                initFirebaseListeners();
+            } else {
+                enableTestMode();
+            }
         };
+
+        function enableTestMode() {
+            isTestMode = true;
+            document.getElementById('testModeBadge').classList.remove('hidden');
+            loadLocalCache();
+            checkSessionLogin();
+        }
 
         // INTEGRAÇÃO REALTIME DATABASE COM FIREBASE
         function initFirebaseListeners() {
@@ -750,9 +775,8 @@
         }
 
         function handleDbError(err) {
-            console.warn('Operando com dados do cache local devido a erro ou desconexão:', err);
-            loadLocalCache();
-            checkSessionLogin();
+            console.warn('Operando em modo local devido a indisponibilidade do Firebase:', err);
+            enableTestMode();
         }
 
         function loadLocalCache() {
@@ -762,7 +786,6 @@
             const storedLocs = localStorage.getItem('cache_patrimonio_locais');
             locations = storedLocs ? JSON.parse(storedLocs) : [...DEFAULT_LOCATIONS];
 
-            // Sugestão 4: Leitura Criptografada (SHA-256 / AES)
             const storedUsers = localStorage.getItem('cache_patrimonio_usuarios');
             if (storedUsers) {
                 try {
@@ -782,7 +805,6 @@
             renderKpis();
         }
 
-        // Sugestão 4: Gravação Criptografada do Cache Local
         function saveLocalCache() {
             try {
                 localStorage.setItem('cache_patrimonio_itens', JSON.stringify(items));
@@ -793,25 +815,28 @@
         }
 
         function saveItemsToFirebase() {
+            saveLocalCache();
+            if (isTestMode) return;
             const updates = {};
             items.forEach(item => { updates[item.id] = item; });
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
                 .catch(err => console.error('Erro ao salvar no Firebase:', err));
-            saveLocalCache();
         }
 
         function saveLocationsToFirebase() {
+            saveLocalCache();
+            if (isTestMode) return;
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_locais'), locations)
                 .catch(err => console.error('Erro ao salvar localizações no Firebase:', err));
-            saveLocalCache();
         }
 
         function saveUsersToFirebase() {
+            saveLocalCache();
+            if (isTestMode) return;
             const usersObj = {};
             users.forEach(u => { usersObj[u.id] = u; });
             window.fbSet(window.fbRef(window.fbDB, 'patrimonio_usuarios'), usersObj)
                 .catch(err => console.error('Erro ao salvar usuários no Firebase:', err));
-            saveLocalCache();
         }
 
         function addHistoryLog(item, action, oldLoc, newLoc) {
@@ -830,15 +855,15 @@
 
         function clearAllData() {
             if (currentRole !== 'admin') return;
-            if (confirm('Tem certeza que deseja apagar todos os registros patrimoniais no Firebase?')) {
+            if (confirm('Tem certeza que deseja apagar todos os registros patrimoniais?')) {
                 items = [];
-                window.fbRemove(window.fbRef(window.fbDB, 'patrimonio_itens'))
-                    .then(() => {
-                        saveLocalCache();
-                        renderTable();
-                        renderKpis();
-                        showToast('Banco de itens zerado com sucesso.', 'info');
-                    });
+                if (!isTestMode) {
+                    window.fbRemove(window.fbRef(window.fbDB, 'patrimonio_itens'));
+                }
+                saveLocalCache();
+                renderTable();
+                renderKpis();
+                showToast('Banco de itens zerado com sucesso.', 'info');
             }
         }
 
@@ -857,7 +882,6 @@
             document.getElementById('loginScreen').classList.remove('hidden');
         }
 
-        // Login Gerenciado Pelo Próprio App (Sem exigência de e-mail ou @policiacivil.pr.gov.br)
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUsername').value.trim().toLowerCase();
@@ -931,7 +955,6 @@
             renderKpis();
         }
 
-        // HISTÓRICO DE AUDITORIA DE MOVIMENTAÇÕES
         function openHistoryModal(itemId) {
             const item = items.find(i => i.id === itemId);
             if (!item) return;
@@ -966,7 +989,6 @@
             document.getElementById('historyModal').classList.add('hidden');
         }
 
-        // GERENCIAMENTO DE USUÁRIOS
         function openUsersModal() {
             if (currentRole !== 'admin') return;
             renderUsersTable();
@@ -1057,7 +1079,7 @@
             saveUsersToFirebase();
             renderUsersTable();
             resetUserForm();
-            showToast('Usuário salvo no Firebase!', 'success');
+            showToast(isTestMode ? 'Usuário salvo localmente!' : 'Usuário salvo no Firebase!', 'success');
         }
 
         function deleteUser(userId) {
@@ -1085,7 +1107,6 @@
             }
         }
 
-        // Sugestão 5: Validação Rígida no Lado do Cliente
         function validatePlaqueta(val) {
             if (!val) return 'SEM PATRIMÔNIO';
             let clean = String(val).replace(/['"]/g, '').replace(/\D/g, '').trim();
@@ -1135,7 +1156,6 @@
             return rows;
         }
 
-        // GERENCIAMENTO DE LOCALIZAÇÕES
         function renderLocationsUI() {
             const datalist = document.getElementById('locationsDatalist');
             datalist.innerHTML = '';
@@ -1231,7 +1251,6 @@
         }
         function closeLocationModal() { document.getElementById('locationModal').classList.add('hidden'); }
 
-        // REORDENAÇÃO DOS CARDS SUPERIORES
         function moveLocationCard(index, direction) {
             const targetIndex = index + direction;
             if (targetIndex < 0 || targetIndex >= locations.length) return;
@@ -1245,7 +1264,6 @@
             renderFilterDropdown();
         }
 
-        // CARDS SUPERIORES
         function renderKpis() {
             const container = document.getElementById('kpiContainer');
             container.innerHTML = '';
@@ -1258,18 +1276,18 @@
 
                 const div = document.createElement('div');
                 div.title = loc;
-                div.className = `bg-white p-1.5 rounded-md border ${isActive ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'} shadow-sm flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md hover:scale-105 transition-all duration-200 min-w-[130px] flex-1 relative group`;
+                div.className = `bg-white p-1 rounded-md border ${isActive ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'} shadow-sm flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md hover:scale-105 transition-all duration-200 min-w-[100px] w-[calc(10%-0.375rem)] flex-shrink-0 flex-grow relative group`;
                 
                 div.innerHTML = `
-                    <div class="flex items-center justify-between gap-1">
-                        <span onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-[10px] font-bold text-slate-600 truncate flex-1 leading-tight group-hover:text-blue-700" title="${escapeHtml(loc)}">${escapeHtml(loc)}</span>
+                    <div class="flex items-center justify-between gap-0.5">
+                        <span onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-[9px] font-bold text-slate-600 truncate flex-1 leading-tight group-hover:text-blue-700" title="${escapeHtml(loc)}">${escapeHtml(loc)}</span>
                         ${!isViewer ? `
-                        <div class="flex items-center text-[9px] space-x-0.5 opacity-40 group-hover:opacity-100 no-print" onclick="event.stopPropagation()">
+                        <div class="flex items-center text-[8px] space-x-0.5 opacity-40 group-hover:opacity-100 no-print" onclick="event.stopPropagation()">
                             <button onclick="moveLocationCard(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para esquerda">◄</button>
                             <button onclick="moveLocationCard(${index}, 1)" ${index === locations.length - 1 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para direita">►</button>
                         </div>` : ''}
                     </div>
-                    <div onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-sm font-bold text-slate-900 mt-0.5">${count}</div>
+                    <div onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-xs font-bold text-slate-900 mt-0.5">${count}</div>
                 `;
                 container.appendChild(div);
             });
@@ -1289,7 +1307,6 @@
             applyFilters();
         }
 
-        // SELETOR MULTIPLO DE FILTROS
         function handleGlobalClick(e) {
             const container = document.getElementById('filterDropdownContainer');
             if (container && !container.contains(e.target)) {
@@ -1470,12 +1487,11 @@
                 addHistoryLog(item, 'Edição Inline de Localização', item.localizacao, newLoc);
                 item.localizacao = newLoc;
                 
-                window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${itemId}`), item)
-                    .then(() => showToast('Localização atualizada com sucesso!', 'success'))
-                    .catch(err => {
-                        saveLocalCache();
-                        showToast('Localização atualizada no cache local.', 'info');
-                    });
+                if (!isTestMode) {
+                    window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${itemId}`), item);
+                }
+                saveLocalCache();
+                showToast('Localização atualizada com sucesso!', 'success');
 
                 renderTable();
                 renderKpis();
@@ -1625,14 +1641,8 @@
                 items.push(dataToSave);
             }
 
-            window.fbSet(window.fbRef(window.fbDB, `patrimonio_itens/${targetId}`), dataToSave)
-                .then(() => {
-                    showToast('Item salvo no Firebase!', 'success');
-                })
-                .catch(err => {
-                    saveLocalCache();
-                    showToast('Item salvo no cache local.', 'info');
-                });
+            saveItemsToFirebase();
+            showToast(isTestMode ? 'Item salvo localmente!' : 'Item salvo no Firebase!', 'success');
 
             closeItemModal();
             renderTable();
@@ -1643,13 +1653,13 @@
             if (currentRole !== 'admin') return;
             if (confirm('Excluir este registro de patrimônio?')) {
                 items = items.filter(i => i.id !== id);
-                window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`))
-                    .then(() => showToast('Item excluído do Firebase.', 'info'))
-                    .catch(err => showToast('Item excluído do cache local.', 'info'));
-
+                if (!isTestMode) {
+                    window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`));
+                }
                 saveLocalCache();
                 renderTable();
                 renderKpis();
+                showToast('Item excluído.', 'info');
             }
         }
 
@@ -1695,11 +1705,12 @@
                     saveLocationsToFirebase();
                 }
 
-                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
-                    .then(() => showToast(`Localização de ${currentList.length} itens alterada!`, 'success'))
-                    .catch(err => showToast(`Localização atualizada localmente.`, 'info'));
-
+                if (!isTestMode) {
+                    window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
+                }
                 saveLocalCache();
+                showToast(`Localização de ${currentList.length} itens alterada!`, 'success');
+
                 closeBulkLocationModal();
                 renderTable();
                 renderKpis();
@@ -1768,9 +1779,8 @@
             const obsIdx = normHeaders.findIndex(h => h.includes('OBSERVACAO') || h.includes('OBS'));
 
             const startRow = hasPlaqueta ? headerIndex + 1 : 0;
-            let count = 0;
-            const updates = {};
 
+            const newObjectsList = [];
             for (let i = startRow; i < rawGrid.length; i++) {
                 const row = rawGrid[i];
                 if (!row || row.length === 0 || !row.some(c => c.length > 0)) continue;
@@ -1786,27 +1796,155 @@
 
                 const observacao = (obsIdx >= 0 && obsIdx < row.length) ? row[obsIdx].trim() : '';
 
+                newObjectsList.push({ plaqueta, localizacao, descricao, observacao });
+            }
+
+            if (items.length === 0) {
+                executeDirectImport(newObjectsList);
+                return;
+            }
+
+            const newPlaquetesSet = new Set(newObjectsList.map(o => o.plaqueta));
+            const itemsToDelete = [];
+            const itemsToAdd = [];
+
+            items.forEach(existingItem => {
+                const plaqueta = existingItem.plaqueta;
+
+                if (newPlaquetesSet.has(plaqueta)) {
+                    return;
+                }
+
+                if (plaqueta === 'SEM PATRIMÔNIO') {
+                    return;
+                } else {
+                    if (existingItem.listaDie === 'SIM') {
+                        itemsToDelete.push(existingItem);
+                    }
+                }
+            });
+
+            const existingPlaquetesSet = new Set(items.map(i => i.plaqueta));
+            newObjectsList.forEach(newObj => {
+                if (!existingPlaquetesSet.has(newObj.plaqueta)) {
+                    itemsToAdd.push(newObj);
+                }
+            });
+
+            if (itemsToAdd.length > 0) {
+                const updates = {};
+                itemsToAdd.forEach((obj, idx) => {
+                    const itemId = 'item_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4);
+                    const newItem = { 
+                        id: itemId, 
+                        plaqueta: obj.plaqueta, 
+                        localizacao: obj.localizacao, 
+                        descricao: obj.descricao, 
+                        listaDie: 'SIM', 
+                        observacao: obj.observacao, 
+                        history: [] 
+                    };
+                    addHistoryLog(newItem, 'Importação CSV (Novo Item)', '-', obj.localizacao);
+                    items.push(newItem);
+                    updates[itemId] = newItem;
+
+                    if (obj.localizacao && !locations.includes(obj.localizacao)) {
+                        locations.push(obj.localizacao);
+                    }
+                });
+
+                saveLocationsToFirebase();
+                if (!isTestMode) {
+                    window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
+                }
+                saveLocalCache();
+                showToast(`${itemsToAdd.length} novo(s) item(ns) adicionado(s) com todas as informações.`, 'success');
+            }
+
+            if (itemsToDelete.length > 0) {
+                setTimeout(() => {
+                    confirmAndDeleteItems(itemsToDelete);
+                }, 300);
+            } else {
+                renderTable();
+                renderKpis();
+            }
+        }
+
+        function executeDirectImport(objectsList) {
+            let count = 0;
+            const updates = {};
+
+            objectsList.forEach((obj, i) => {
                 const itemId = 'item_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4);
-                
-                const newItem = { id: itemId, plaqueta, localizacao, descricao, listaDie: 'SIM', observacao, history: [] };
-                addHistoryLog(newItem, 'Importação CSV', '-', localizacao);
+                const newItem = { 
+                    id: itemId, 
+                    plaqueta: obj.plaqueta, 
+                    localizacao: obj.localizacao, 
+                    descricao: obj.descricao, 
+                    listaDie: 'SIM', 
+                    observacao: obj.observacao, 
+                    history: [] 
+                };
+                addHistoryLog(newItem, 'Importação CSV', '-', obj.localizacao);
                 items.push(newItem);
                 updates[itemId] = newItem;
                 count++;
 
-                if (localizacao && !locations.includes(localizacao)) {
-                    locations.push(localizacao);
+                if (obj.localizacao && !locations.includes(obj.localizacao)) {
+                    locations.push(obj.localizacao);
                 }
-            }
+            });
 
             saveLocationsToFirebase();
-            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
-                .then(() => showToast(`${count} itens importados no Firebase (Lista da DIE = SIM)!`, 'success'))
-                .catch(err => showToast(`${count} itens importados no cache local.`, 'info'));
-
+            if (!isTestMode) {
+                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
+            }
             saveLocalCache();
             renderTable();
             renderKpis();
+            showToast(`${count} itens importados ${isTestMode ? 'localmente' : 'no Firebase'}!`, 'success');
+        }
+
+        function confirmAndDeleteItems(itemsToDelete) {
+            const total = itemsToDelete.length;
+            const msg = `Análise da lista concluída!\n\nFoi identificada a ausência de ${total} item(ns) preexistente(s) cadastrado(s) com "Lista da DIE? = SIM" que não constam na nova lista.\n\nDeseja realizar a exclusão desses ${total} itens do sistema?`;
+
+            if (confirm(msg)) {
+                exportItemsToCSV(itemsToDelete, `itens_excluidos_importacao_${new Date().toISOString().slice(0, 10)}.csv`);
+
+                const idsToRemove = new Set(itemsToDelete.map(i => i.id));
+                items = items.filter(i => !idsToRemove.has(i.id));
+
+                if (!isTestMode) {
+                    idsToRemove.forEach(id => {
+                        window.fbRemove(window.fbRef(window.fbDB, `patrimonio_itens/${id}`));
+                    });
+                }
+
+                saveLocalCache();
+                renderTable();
+                renderKpis();
+                showToast(`${total} item(ns) exportado(s) para CSV e excluído(s) com sucesso.`, 'info');
+            } else {
+                renderTable();
+                renderKpis();
+            }
+        }
+
+        function exportItemsToCSV(itemList, fileName) {
+            if (!itemList || itemList.length === 0) return;
+
+            let csv = '\uFEFFPLAQUETA;LOCALIZAÇÃO;DESCRIÇÃO DO ITEM;LISTA DA DIE?;OBSERVAÇÃO\n';
+            itemList.forEach(i => {
+                csv += `"${i.plaqueta}";"${i.localizacao}";"${i.descricao}";"${i.listaDie || 'SIM'}";"${i.observacao || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
         }
 
         function openCompareModal() { document.getElementById('compareModal').classList.remove('hidden'); }
@@ -1918,32 +2056,20 @@
             }
 
             saveLocationsToFirebase();
-            window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates)
-                .then(() => showToast(`Comparação no Firebase: ${updatedCount} atualizados, ${createdCount} criados.`, 'success'))
-                .catch(err => showToast(`Comparação concluída no cache local.`, 'info'));
-
+            if (!isTestMode) {
+                window.fbUpdate(window.fbRef(window.fbDB, 'patrimonio_itens'), updates);
+            }
             saveLocalCache();
+            showToast(`Comparação concluída: ${updatedCount} atualizados, ${createdCount} criados.`, 'success');
+
             renderTable();
             renderKpis();
         }
 
         function executeExportCSV() {
-            const list = getFilteredItems();
-            if (list.length === 0) { showToast('Nenhum item para exportar.', 'warning'); return; }
-
-            let csv = '\uFEFFPLAQUETA;LOCALIZAÇÃO;DESCRIÇÃO DO ITEM;LISTA DA DIE?;OBSERVAÇÃO\n';
-            list.forEach(i => {
-                csv += `"${i.plaqueta}";"${i.localizacao}";"${i.descricao}";"${i.listaDie || 'SIM'}";"${i.observacao || ''}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `patrimonio_delegacia_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
+            exportItemsToCSV(getFilteredItems(), `patrimonio_delegacia_${new Date().toISOString().slice(0,10)}.csv`);
         }
 
-        // ETIQUETAS BARCODE
         function openBarcodeModal() {
             const list = getFilteredItems();
             const patrimonyItems = list.filter(item => item.plaqueta !== 'SEM PATRIMÔNIO');
@@ -2083,7 +2209,6 @@
             setTimeout(() => { window.print(); }, 300);
         }
 
-        // Sugestão 5: Escape Rígido de HTML para Prevenir Injeções Maliciosas (XSS)
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
