@@ -80,7 +80,7 @@
         }
     </style>
 
-    <!-- FIREBASE SDK MODULAR -->
+    <!-- FIREBASE SDK MODULAR (ALTERAÇÃO 1 APLICADA) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -106,6 +106,13 @@
             window.fbRemove = remove;
             window.fbOnValue = onValue;
             window.isFirebaseActive = true;
+
+            // Se o DOM já carregou quando o módulo terminar, inicia a conexão do Firebase imediatamente
+            if (document.readyState === "complete" || document.readyState === "interactive") {
+                if (typeof window.startApp === 'function') {
+                    window.startApp();
+                }
+            }
         } catch (e) {
             console.warn("Falha na inicialização do Firebase. Ativando Modo Teste Local.", e);
             window.isFirebaseActive = false;
@@ -675,6 +682,7 @@
     <!-- Notification Toasts -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
 
+    <!-- SCRIPT PRINCIPAL (ALTERAÇÃO 2 APLICADA) -->
     <script>
         // Usuários Padrão Iniciais
         const DEFAULT_USERS = [
@@ -716,9 +724,19 @@
         let currentSortColumn = null;
         let currentSortDirection = 'asc';
         let isTestMode = false;
+        let isAppStarted = false;
 
         window.onload = function() {
-            // VERIFICAÇÃO AUTOMÁTICA DO MODO TESTE
+            // Dá um pequeno tempo (300ms) para o script module do Firebase carregar antes de decidir pelo Modo Teste
+            setTimeout(() => {
+                window.startApp();
+            }, 300);
+        };
+
+        window.startApp = function() {
+            if (isAppStarted) return;
+            isAppStarted = true;
+
             if (window.isFirebaseActive) {
                 initFirebaseListeners();
             } else {
