@@ -16,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <!-- CryptoJS (SHA-256) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- SortableJS (Drag and Drop) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -56,6 +58,12 @@
             max-width: 3.7cm;
             max-height: 1.2cm;
             width: 100%;
+        }
+
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #e2e8f0 !important;
+            border: 2px dashed #475569 !important;
         }
 
         @media print {
@@ -228,7 +236,7 @@
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-5">
         
-        <!-- CARDS DE LOCALIZAÇÃO (10 POR LINHA) -->
+        <!-- CARDS DE LOCALIZAÇÃO (10 POR LINHA + ARRASTAR E SOLTAR COM O MOUSE) -->
         <div id="kpiContainer" class="flex flex-wrap gap-1.5 no-print items-stretch max-h-64 overflow-y-auto p-2 pb-3 bg-slate-200/50 rounded-xl border border-slate-200"></div>
 
         <!-- BARRA DE FILTROS E BUSCA -->
@@ -706,6 +714,7 @@
         let selectedFilterOptions = [];
         let currentSortColumn = null;
         let currentSortDirection = 'asc';
+        let sortableInstance = null;
 
         window.onload = function() {
             initFirebaseListeners();
@@ -1227,23 +1236,12 @@
         }
         function closeLocationModal() { document.getElementById('locationModal').classList.add('hidden'); }
 
-        function moveLocationCard(index, direction) {
-            const targetIndex = index + direction;
-            if (targetIndex < 0 || targetIndex >= locations.length) return;
-
-            const temp = locations[index];
-            locations[index] = locations[targetIndex];
-            locations[targetIndex] = temp;
-
-            saveLocationsToFirebase();
-            renderKpis();
-            renderFilterDropdown();
-        }
-
+        // CARDS SUPERIORES (COM DRAG AND DROP E BOTÃO ENGRENAGEM PARA ADMIN)
         function renderKpis() {
             const container = document.getElementById('kpiContainer');
             container.innerHTML = '';
 
+            const isAdmin = currentRole === 'admin';
             const isViewer = currentRole === 'viewer';
 
             locations.forEach((loc, index) => {
@@ -1252,21 +1250,53 @@
 
                 const div = document.createElement('div');
                 div.title = loc;
-                div.className = `bg-white p-1 rounded-md border ${isActive ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'} shadow-sm flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md hover:scale-105 transition-all duration-200 min-w-[100px] w-[calc(10%-0.375rem)] flex-shrink-0 flex-grow relative group`;
+                div.setAttribute('data-loc-name', loc);
+                div.className = `bg-white p-1 rounded-md border ${isActive ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'} shadow-sm flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md transition-all duration-200 min-w-[100px] w-[calc(10%-0.375rem)] flex-shrink-0 flex-grow relative group ${!isViewer ? 'cursor-grab active:cursor-grabbing' : ''}`;
                 
                 div.innerHTML = `
                     <div class="flex items-center justify-between gap-0.5">
                         <span onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-[9px] font-bold text-slate-600 truncate flex-1 leading-tight group-hover:text-blue-700" title="${escapeHtml(loc)}">${escapeHtml(loc)}</span>
-                        ${!isViewer ? `
-                        <div class="flex items-center text-[8px] space-x-0.5 opacity-40 group-hover:opacity-100 no-print" onclick="event.stopPropagation()">
-                            <button onclick="moveLocationCard(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para esquerda">◄</button>
-                            <button onclick="moveLocationCard(${index}, 1)" ${index === locations.length - 1 ? 'disabled' : ''} class="p-0.5 hover:text-blue-600 disabled:opacity-10" title="Mover para direita">►</button>
-                        </div>` : ''}
                     </div>
                     <div onclick="filterByLocationCard('${escapeHtml(loc)}')" class="text-xs font-bold text-slate-900 mt-0.5">${count}</div>
                 `;
                 container.appendChild(div);
             });
+
+            // BOTÃO ENGRENAGEM NO FINAL DOS CARDS (APENAS ADMINISTRADOR)
+            if (isAdmin) {
+                const gearBtn = document.createElement('button');
+                gearBtn.type = 'button';
+                gearBtn.onclick = openLocationModal;
+                gearBtn.title = 'Gerenciar e Reordenar Localizações';
+                gearBtn.className = 'bg-slate-800 hover:bg-slate-700 text-amber-400 p-1.5 rounded-md border border-slate-700 shadow-sm flex items-center justify-center transition hover:scale-105 h-auto min-w-[36px] flex-shrink-0 self-stretch';
+                gearBtn.innerHTML = `<i class="fa-solid fa-gear text-sm"></i>`;
+                container.appendChild(gearBtn);
+            }
+
+            // HABILITA O DRAG AND DROP (SORTABLEJS)
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            if (!isViewer && typeof Sortable !== 'undefined') {
+                sortableInstance = new Sortable(container, {
+                    animation: 150,
+                    draggable: '[data-loc-name]',
+                    ghostClass: 'sortable-ghost',
+                    onEnd: function (evt) {
+                        const newOrder = [];
+                        const cardNodes = container.querySelectorAll('[data-loc-name]');
+                        cardNodes.forEach(node => {
+                            const name = node.getAttribute('data-loc-name');
+                            if (name) newOrder.push(name);
+                        });
+
+                        locations = newOrder;
+                        saveLocationsToFirebase();
+                        renderFilterDropdown();
+                    }
+                });
+            }
         }
 
         function filterByLocationCard(loc) {
